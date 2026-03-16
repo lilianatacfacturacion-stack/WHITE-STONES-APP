@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>THE WHITE STONES APP — Gestión Fiscal REBU</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* LOGIN */
+.login-screen{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--stone-dark);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}
+.login-box{background:#FDF8F3;border-radius:16px;padding:36px 32px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.35);text-align:center}
+.login-logo{width:72px;height:72px;border-radius:50%;background:var(--stone-dark);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:13px;color:var(--stone-light);line-height:1.3;letter-spacing:1px;font-weight:bold}
+.login-title{font-size:20px;color:var(--stone-dark);letter-spacing:2px;margin-bottom:4px}
+.login-sub{font-size:11px;color:var(--ink3);letter-spacing:1px;margin-bottom:28px}
+.login-field{margin-bottom:14px;text-align:left}
+.login-field label{font-size:12px;color:var(--ink2);display:block;margin-bottom:5px;font-style:italic}
+.login-field input{width:100%;padding:10px 14px;border:1.5px solid #D4C8BC;border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink);outline:none;transition:border 0.15s}
+.login-field input:focus{border-color:var(--stone-dark)}
+.login-btn{width:100%;padding:12px;background:var(--stone-dark);color:#fff;border:none;border-radius:8px;font-size:14px;font-family:inherit;font-weight:bold;letter-spacing:1px;cursor:pointer;margin-top:8px;transition:background 0.15s}
+.login-btn:hover{background:var(--stone)}
+.login-btn:active{transform:scale(0.98)}
+.login-error{background:#FFEBEE;color:#C62828;border:1px solid #EF9A9A;border-radius:7px;padding:8px 12px;font-size:12px;margin-top:10px;display:none}
+.login-footer{font-size:10px;color:var(--ink3);margin-top:20px;letter-spacing:0.5px}
+:root{
+  --cream:#FDF8F3;--stone:#8B7355;--stone-light:#C4A882;--stone-dark:#5C4A32;
+  --ink:#2C2420;--ink2:#6B5B52;--ink3:#9E8E85;
+  --green-bg:#E8F5E9;--green:#2E7D32;--green-b:#A5D6A7;
+  --red-bg:#FFEBEE;--red:#C62828;--red-b:#EF9A9A;
+  --blue-bg:#E3F2FD;--blue:#1565C0;--blue-b:#90CAF9;
+  --gold:#C49A2A;--gold-bg:#FFF8E1;
+  --purple:#5E35B1;--purple-bg:#EDE7F6;--purple-b:#B39DDB;
+  --radius:10px;--shadow:0 2px 12px rgba(92,74,50,0.10);
+}
+body{font-family:'Georgia',serif;background:var(--cream);color:var(--ink);min-height:100vh}
+.app-shell{display:flex;flex-direction:column;min-height:100vh}
+.header{background:var(--stone-dark);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,0.18)}
+.logo-circle{width:48px;height:48px;border-radius:50%;border:2px solid var(--stone-light);background:var(--stone);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0}
+.logo-circle img{width:100%;height:100%;object-fit:cover;display:none}
+.logo-placeholder{font-size:11px;color:var(--stone-light);text-align:center;line-height:1.2;letter-spacing:0.5px}
+.header-title{flex:1}
+.header-title h1{font-size:18px;font-weight:normal;letter-spacing:2px;color:#FDF8F3}
+.header-title p{font-size:11px;color:var(--stone-light);letter-spacing:1px;margin-top:2px}
+.header-badge{font-size:10px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);padding:3px 8px;border-radius:20px;letter-spacing:1px;white-space:nowrap}
+.nav{background:#fff;border-bottom:1px solid #E0D5C8;display:flex;overflow-x:auto;padding:0 8px}
+.nav-btn{flex-shrink:0;padding:12px 16px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--ink2);border-bottom:2.5px solid transparent;display:flex;align-items:center;gap:6px;transition:all 0.18s;white-space:nowrap}
+.nav-btn:hover{color:var(--stone-dark);background:var(--cream)}
+.nav-btn.active{color:var(--stone-dark);border-bottom-color:var(--stone-dark);font-weight:bold}
+.nav-icon{font-size:16px}
+.main{flex:1;padding:18px;max-width:980px;margin:0 auto;width:100%}
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid #EAE0D5;padding:18px;margin-bottom:16px}
+.card-title{font-size:15px;color:var(--stone-dark);margin-bottom:14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #EAE0D5;padding-bottom:10px}
+.btn{padding:9px 18px;border-radius:var(--radius);border:none;cursor:pointer;font-size:13px;font-family:inherit;font-weight:bold;letter-spacing:0.5px;display:inline-flex;align-items:center;gap:7px;transition:all 0.15s}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:var(--stone-dark);color:#fff}
+.btn-primary:hover{background:var(--stone)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:#1B5E20}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-gold:hover{background:#A07820}
+.btn-purple{background:var(--purple);color:#fff}
+.btn-purple:hover{background:#4527A0}
+.btn-outline{background:transparent;border:1.5px solid var(--stone);color:var(--stone-dark)}
+.btn-outline:hover{background:var(--cream)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.section-banner{border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px}
+.banner-bank{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-b)}
+.banner-sales{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b)}
+.banner-expense{background:var(--red-bg);color:var(--red);border:1px solid var(--red-b)}
+.form-row{display:grid;gap:12px;margin-bottom:12px}
+.form-row-2{grid-template-columns:1fr 1fr}
+.form-row-3{grid-template-columns:1fr 1fr 1fr}
+label.field-label{font-size:12px;color:var(--ink2);display:block;margin-bottom:4px;font-style:italic}
+input[type=text],input[type=number],input[type=date],input[type=email],select,textarea{width:100%;padding:8px 11px;border:1px solid #D4C8BC;border-radius:7px;font-size:13px;font-family:inherit;background:#FDFAF7;color:var(--ink);outline:none;transition:border 0.15s}
+input:focus,select:focus,textarea:focus{border-color:var(--stone);background:#fff}
+.table-wrap{overflow-x:auto;border-radius:7px;border:1px solid #EAE0D5}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--stone-dark);color:#fff;padding:8px 10px;text-align:left;font-weight:normal;letter-spacing:0.5px}
+td{padding:7px 10px;border-bottom:1px solid #EAE0D5}
+tr.income td{background:#F1FAF2;color:var(--green)}
+tr.expense td{background:#FFF3F3;color:var(--red)}
+tr.neutral td{background:#F8F8F8;color:var(--ink2)}
+tr.vinted-in td{background:#E8F5E9;color:#1B5E20}
+tr.vinted-out td{background:#FFF3E0;color:#E65100}
+tr.bizum td{background:#EDE7F6;color:#4527A0}
+tr.cash-in td{background:#E0F7FA;color:#006064;font-style:italic}
+tr.total-row td{background:var(--stone-dark)!important;color:#fff!important;font-weight:bold}
+tr.pending-sale td{background:#F3E5F5;color:#4A148C}
+tr.complete-sale td{background:#E8F5E9;color:#1B5E20}
+.positive{color:var(--green);font-weight:bold}
+.negative{color:var(--red);font-weight:bold}
+.chatbot-wrap{background:#FAFAF8;border:1px solid #EAE0D5;border-radius:var(--radius);padding:16px}
+.chat-step{margin-bottom:16px}
+.chat-q{background:var(--stone-dark);color:#fff;padding:9px 14px;border-radius:10px 10px 10px 3px;display:inline-block;font-size:13px;margin-bottom:8px;max-width:85%}
+.step-progress{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.step-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;border:1.5px solid #D4C8BC;color:var(--ink2)}
+.step-dot.done{background:var(--stone-dark);color:#fff;border-color:var(--stone-dark)}
+.step-dot.active{background:var(--stone-light);color:#fff;border-color:var(--stone-light)}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:12px}
+.photo-thumb{position:relative;background:#F0EAE2;border-radius:8px;aspect-ratio:1;overflow:hidden;border:1.5px solid #D4C8BC;cursor:pointer}
+.photo-thumb img{width:100%;height:100%;object-fit:cover}
+.photo-ref{position:absolute;bottom:0;left:0;right:0;background:rgba(44,36,32,0.72);color:#fff;font-size:10px;padding:3px 6px;text-align:center}
+.photo-thumb.selected{border:3px solid var(--green);box-shadow:0 0 0 2px var(--green-b)}
+.photo-add{background:var(--gold-bg);border:2px dashed var(--stone-light);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--stone-light);cursor:pointer;border-radius:8px;aspect-ratio:1}
+.photo-add:hover{background:#FFF3E0;border-color:var(--gold)}
+.status-pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:bold;letter-spacing:0.5px;display:inline-block}
+.pill-green{background:var(--green-bg);color:var(--green)}
+.pill-red{background:var(--red-bg);color:var(--red)}
+.pill-gold{background:var(--gold-bg);color:var(--gold)}
+.pill-purple{background:var(--purple-bg);color:var(--purple)}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0}
+.summary-box{border-radius:8px;padding:12px 14px;text-align:center}
+.summary-box .sb-val{font-size:20px;font-weight:bold;line-height:1.2}
+.summary-box .sb-lbl{font-size:11px;margin-top:3px;letter-spacing:0.5px;opacity:0.8}
+.sb-green{background:var(--green-bg);color:var(--green)}
+.sb-red{background:var(--red-bg);color:var(--red)}
+.sb-blue{background:var(--blue-bg);color:var(--blue)}
+.sb-gold{background:var(--gold-bg);color:var(--gold)}
+.sb-purple{background:var(--purple-bg);color:var(--purple)}
+.config-section{margin-bottom:20px}
+.config-section h3{font-size:13px;color:var(--stone);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;border-left:3px solid var(--stone);padding-left:8px}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(44,36,32,0.55);z-index:100;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,0.22);padding:22px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:16px;color:var(--stone-dark);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #EAE0D5;display:flex;justify-content:space-between;align-items:center}
+.modal-close{cursor:pointer;font-size:20px;color:var(--ink3);background:none;border:none;line-height:1}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--stone-dark);color:#fff;padding:11px 20px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.toast.show{opacity:1}
+.upload-zone{border:2px dashed #C4A882;border-radius:var(--radius);padding:28px 20px;text-align:center;cursor:pointer;background:#FDFAF7;transition:all 0.2s}
+.upload-zone:hover{border-color:var(--stone-dark);background:#F5EDE3}
+.upload-zone p{color:var(--ink2);font-size:13px;margin-top:8px}
+.upload-zone .uz-icon{font-size:36px}
+.receipt{font-family:'Courier New',monospace;font-size:12px;background:#fff;border:1px solid #ccc;padding:20px;border-radius:4px;max-width:400px;margin:0 auto}
+.receipt-header{text-align:center;border-bottom:1px dashed #ccc;padding-bottom:10px;margin-bottom:10px}
+.receipt-row{display:flex;justify-content:space-between;margin-bottom:4px}
+.receipt-total{border-top:1px dashed #ccc;margin-top:8px;padding-top:8px;font-weight:bold}
+.receipt-footer{border-top:1px dashed #ccc;margin-top:10px;padding-top:8px;text-align:center;color:#666;font-size:10px}
+.month-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.month-tab{padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid #D4C8BC;background:#fff;color:var(--ink2);transition:all 0.15s}
+.month-tab.active{background:var(--stone-dark);color:#fff;border-color:var(--stone-dark)}
+.rebu-calc{background:var(--purple-bg);border-radius:8px;padding:12px;margin-top:10px;font-size:13px}
+.rebu-calc .val{font-size:18px;font-weight:bold;color:#283593}
+.rebu-tag{background:#E8EAF6;color:#283593;padding:2px 7px;border-radius:12px;font-size:11px;font-weight:bold}
+.drive-btn{background:#fff;border:1.5px solid #4285F4;color:#4285F4;border-radius:var(--radius);padding:9px 16px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:8px;font-family:inherit;transition:all 0.15s;text-decoration:none}
+.drive-btn:hover{background:#E8F0FE}
+.drive-connected{background:#E8F5E9;border-color:#2E7D32;color:#2E7D32}
+.drive-connected:hover{background:#C8E6C9}
+.drive-icon{width:18px;height:18px;flex-shrink:0}
+.drive-status{background:#E8F5E9;border:1px solid #A5D6A7;border-radius:8px;padding:10px 14px;font-size:12px;color:#1B5E20;display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.flex-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mt-1{margin-top:8px}.mt-2{margin-top:14px}.mt-3{margin-top:20px}
+.text-sm{font-size:12px;color:var(--ink2)}
+.text-xs{font-size:11px;color:var(--ink3)}
+.hidden{display:none}
+input[type=file]{display:none}
+
+/* LEGEND */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;font-size:12px}
+.legend-item{display:flex;align-items:center;gap:6px}
+.legend-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.dot-green{background:var(--green)}
+.dot-purple{background:var(--purple)}
+
+/* SALE CARD LIST */
+.sale-cards{display:flex;flex-direction:column;gap:8px}
+.sale-card{border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.15s;border:1.5px solid transparent}
+.sale-card:hover{transform:translateX(3px)}
+.sale-card.complete{background:#F1FAF2;border-color:var(--green-b)}
+.sale-card.pending{background:#F3E5F5;border-color:var(--purple-b)}
+.sale-card-icon{font-size:22px;flex-shrink:0}
+.sale-card-body{flex:1;min-width:0}
+.sale-card-title{font-size:13px;font-weight:bold;color:var(--ink)}
+.sale-card-meta{font-size:11px;color:var(--ink2);margin-top:2px}
+.sale-card-amount{font-size:15px;font-weight:bold;flex-shrink:0}
+.sale-card.complete .sale-card-amount{color:var(--green)}
+.sale-card.pending .sale-card-amount{color:var(--purple)}
+.sale-card-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:bold;margin-left:6px}
+.badge-complete{background:var(--green-bg);color:var(--green)}
+.badge-pending{background:var(--purple-bg);color:var(--purple)}
+
+/* PHOTO PICKER */
+.photo-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;max-height:300px;overflow-y:auto;padding:4px}
+.photo-picker-item{border-radius:8px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:all 0.15s;position:relative;aspect-ratio:1}
+.photo-picker-item img{width:100%;height:100%;object-fit:cover}
+.photo-picker-item:hover{border-color:var(--stone-light)}
+.photo-picker-item.selected{border-color:var(--green);box-shadow:0 0 0 2px var(--green)}
+.photo-picker-item .pref{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);color:#fff;font-size:9px;padding:2px 4px;text-align:center}
+.photo-picker-empty{text-align:center;padding:30px;color:var(--ink3);font-size:13px}
+
+/* PENDING COMPLETION FORM */
+.completion-banner{background:var(--purple-bg);border:1px solid var(--purple-b);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:var(--purple)}
+</style>
+</head>
+<body>
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">TWS<br/>APP</div>
+    <div class="login-title">THE WHITE STONES</div>
+    <div class="login-sub">GESTIÓN FISCAL · RÉGIMEN REBU</div>
+    <div class="login-field">
+      <label>Usuario</label>
+      <input type="text" id="loginUser" placeholder="Introduce tu usuario" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()"/>
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input type="password" id="loginPass" placeholder="Introduce tu contraseña" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">ENTRAR →</button>
+    <div class="login-error" id="loginError">❌ Usuario o contraseña incorrectos</div>
+    <div class="login-footer">Acceso restringido · The White Stones App</div>
+  </div>
+</div>
+
+<div class="app-shell" id="appShell" style="display:none">
+
+<div class="header">
+  <div class="logo-circle" id="logoCircle" title="Clic para subir logo">
+    <input type="file" id="logoInput" accept="image/*">
+    <img id="logoImg" alt="Logo"/>
+    <div class="logo-placeholder" id="logoPlaceholder">TWS<br/>APP</div>
+  </div>
+  <div class="header-title">
+    <h1>THE WHITE STONES APP</h1>
+    <p>GESTIÓN FISCAL · RÉGIMEN REBU · AUTÓNOMA</p>
+  </div>
+  <span class="header-badge">✅ DRIVE VINCULADO</span>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="showTab('dashboard')" id="tab-dashboard"><span class="nav-icon">📊</span>Dashboard</button>
+  <button class="nav-btn" onclick="showTab('bank')" id="tab-bank"><span class="nav-icon">🏦</span>Extracto Banco</button>
+  <button class="nav-btn" onclick="showTab('sales')" id="tab-sales"><span class="nav-icon">🛍️</span>Ventas Vinted</button>
+  <button class="nav-btn" onclick="showTab('cash')" id="tab-cash"><span class="nav-icon">💶</span>Efectivo</button>
+  <button class="nav-btn" onclick="showTab('photos')" id="tab-photos"><span class="nav-icon">📸</span>Fotos</button>
+  <button class="nav-btn" onclick="showTab('rebu')" id="tab-rebu"><span class="nav-icon">🧾</span>Excel REBU</button>
+  <button class="nav-btn" onclick="showTab('config')" id="tab-config"><span class="nav-icon">⚙️</span>Configuración</button>
+</div>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div id="page-dashboard">
+  <div class="drive-status">☁️ <div><strong>Google Drive vinculado</strong> — Carpeta THE WHITE STONES APP activa.</div></div>
+  <div class="summary-grid">
+    <div class="summary-box sb-green"><div class="sb-val" id="ds-ingresos">€0,00</div><div class="sb-lbl">INGRESOS TOTALES</div></div>
+    <div class="summary-box sb-red"><div class="sb-val" id="ds-gastos">€0,00</div><div class="sb-lbl">GASTOS TOTALES</div></div>
+    <div class="summary-box sb-blue"><div class="sb-val" id="ds-balance">€0,00</div><div class="sb-lbl">BALANCE</div></div>
+    <div class="summary-box sb-gold"><div class="sb-val" id="ds-vinted">€0,00</div><div class="sb-lbl">VENTAS VINTED</div></div>
+    <div class="summary-box sb-purple"><div class="sb-val" id="ds-pendientes">0</div><div class="sb-lbl">FICHAS PENDIENTES</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Últimos movimientos</div>
+    <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Importe</th><th>Tipo</th></tr></thead><tbody id="recent-movements"><tr class="neutral"><td colspan="4" style="text-align:center;padding:18px;color:var(--ink3)">Sin movimientos aún.</td></tr></tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="card-title">☁️ Acceso directo a carpetas de Drive</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+      <a class="drive-btn drive-connected" href="https://drive.google.com/drive/folders/1_PLpYseG2D9FxUqM_7k3ikhPnKbovFiA" target="_blank">📁 Extractos Bancarios</a>
+      <a class="drive-btn drive-connected" href="https://drive.google.com/drive/folders/1wtfDIPbtZYcRvvoj0Rc-PrfyGQBHGmqh" target="_blank">🧾 Recibos REBU</a>
+      <a class="drive-btn drive-connected" href="https://drive.google.com/drive/folders/1SlODHvZfKRoGaJiJA4YwNzsUq90xAvyu" target="_blank">📊 Excel Mensual</a>
+      <a class="drive-btn drive-connected" href="https://drive.google.com/drive/folders/1xO-XNLFwokJpGyzZ6-XIyXI6__VcwznI" target="_blank">📑 Excel REBU</a>
+      <a class="drive-btn drive-connected" href="https://drive.google.com/drive/folders/18GuIAd8-1dcbmmudLtFkBAY4d5faUHro" target="_blank">📸 Fotos Productos</a>
+    </div>
+  </div>
+  <div class="flex-row mt-2">
+    <button class="btn btn-primary" onclick="showTab('bank')">📥 Importar extracto</button>
+    <button class="btn btn-green" onclick="showTab('sales')">🛍️ Nueva venta Vinted</button>
+    <button class="btn btn-gold" onclick="showTab('cash')">💶 Venta en efectivo</button>
+  </div>
+</div>
+
+<!-- BANCO -->
+<div id="page-bank" class="hidden">
+  <div class="section-banner banner-bank"><span style="font-size:20px">🏦</span><div><strong>Extracto Bancario</strong> — Las ventas Vinted y Bizum detectadas aparecerán automáticamente en la pestaña Ventas Vinted como pendientes.</div></div>
+  <div class="card">
+    <div class="card-title">📥 Importar extracto</div>
+    <div class="upload-zone" onclick="document.getElementById('bankFile').click()">
+      <input type="file" id="bankFile" accept=".csv,.xlsx,.xls" onchange="loadBankFile(this)">
+      <div class="uz-icon">📄</div>
+      <p><strong>Haz clic o arrastra</strong> tu extracto aquí</p>
+      <p class="text-xs mt-1">CSV, XLSX, XLS · Compatible con todos los bancos españoles</p>
+    </div>
+  </div>
+  <div class="card" id="bankPreviewCard" style="display:none">
+    <div class="card-title">🔍 Mapeo de columnas</div>
+    <div class="form-row form-row-3">
+      <div><label class="field-label">Columna FECHA</label><select id="colFecha"></select></div>
+      <div><label class="field-label">Columna CONCEPTO</label><select id="colConcepto"></select></div>
+      <div><label class="field-label">Columna IMPORTE</label><select id="colImporte"></select></div>
+    </div>
+    <div class="flex-row mt-2">
+      <button class="btn btn-primary" onclick="processBankData()">✅ Procesar</button>
+      <button class="btn btn-outline" onclick="document.getElementById('bankPreviewCard').style.display='none'">✕ Cancelar</button>
+    </div>
+  </div>
+  <div id="bankResultCard" style="display:none">
+    <div class="card">
+      <div class="card-title">📊 Movimientos importados</div>
+      <div class="month-tabs" id="bankMonthTabs"></div>
+      <div id="bankMonthSummary" class="summary-grid"></div>
+      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Importe</th><th>Tipo</th></tr></thead><tbody id="bankTable"></tbody></table></div>
+    </div>
+    <div class="flex-row mt-2">
+      <button class="btn btn-green" onclick="exportBankExcel()">📥 Descargar Excel</button>
+      <a class="drive-btn drive-connected" href="https://drive.google.com/drive/folders/1SlODHvZfKRoGaJiJA4YwNzsUq90xAvyu" target="_blank">☁️ Abrir carpeta Excel Mensual →</a>
+    </div>
+  </div>
+</div>
+
+<!-- VENTAS VINTED -->
+<div id="page-sales" class="hidden">
+  <div class="section-banner banner-sales"><span style="font-size:20px">🛍️</span><div><strong>Ventas Vinted — REBU</strong> — Aquí aparecen todas las ventas: <strong style="color:var(--green)">🟢 completadas</strong> y <strong style="color:var(--purple)">🟣 pendientes</strong> de ficha (detectadas en el extracto).</div></div>
+
+  <!-- PANEL ARTÍCULOS: completos + pendientes -->
+  <div class="card">
+    <div class="card-title">📦 Todos los artículos vendidos</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot dot-green"></div><span>Ficha completa — datos de compra introducidos</span></div>
+      <div class="legend-item"><div class="legend-dot dot-purple"></div><span>Pendiente — detectado en extracto, falta datos de compra</span></div>
+    </div>
+    <div class="sale-cards" id="allSaleCards">
+      <div style="text-align:center;padding:20px;color:var(--ink3);font-size:13px">Importa un extracto bancario para ver las ventas pendientes, o registra una nueva venta con el chatbot.</div>
+    </div>
+  </div>
+
+  <!-- CHATBOT -->
+  <div class="card" id="salesChatCard">
+    <div class="card-title" id="chatCardTitle">🤖 Asistente REBU — Nueva venta</div>
+    <div id="completionBanner" class="completion-banner hidden"></div>
+    <div class="step-progress" id="chatStepProgress"></div>
+    <div class="chatbot-wrap"><div id="chatMessages"></div><div id="chatInputArea" class="flex-row mt-1"></div></div>
+  </div>
+
+  <!-- LISTA VENTAS COMPLETADAS -->
+  <div class="card">
+    <div class="card-title">✅ Ventas con ficha completa</div>
+    <div class="table-wrap"><table><thead><tr><th>Ref.</th><th>Fecha</th><th>Artículo</th><th>P.Compra</th><th>P.Venta</th><th>Margen</th><th>IVA REBU</th><th>Acciones</th></tr></thead><tbody id="salesTable"><tr class="neutral"><td colspan="8" style="text-align:center;padding:14px;color:var(--ink3)">Sin ventas completadas.</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- EFECTIVO -->
+<div id="page-cash" class="hidden">
+  <div class="section-banner banner-expense"><span style="font-size:20px">💶</span><div><strong>Ventas en Efectivo</strong> — Registradas como EFECTIVO en el Excel mensual.</div></div>
+  <div class="card">
+    <div class="card-title">➕ Nueva venta en efectivo</div>
+    <div class="form-row form-row-2">
+      <div><label class="field-label">Fecha *</label><input type="date" id="cashDate"/></div>
+      <div><label class="field-label">Referencia</label><input type="text" id="cashRef" placeholder="Auto-generada"/></div>
+    </div>
+    <div class="form-row"><div><label class="field-label">Descripción del artículo *</label><input type="text" id="cashDesc"/></div></div>
+    <div class="form-row form-row-3">
+      <div><label class="field-label">Precio de compra (€) *</label><input type="number" id="cashBuy" step="0.01" min="0"/></div>
+      <div><label class="field-label">Precio de venta (€) *</label><input type="number" id="cashSell" step="0.01" min="0"/></div>
+      <div><label class="field-label">Foto vinculada</label><select id="cashPhoto"><option value="">Sin foto</option></select></div>
+    </div>
+    <div class="form-row form-row-2">
+      <div><label class="field-label">Nombre comprador</label><input type="text" id="cashBuyer"/></div>
+      <div><label class="field-label">Estado</label><select id="cashCondition"><option>Buen estado</option><option>Muy buen estado</option><option>Nuevo sin etiqueta</option><option>Nuevo con etiqueta</option><option>Estado aceptable</option></select></div>
+    </div>
+    <div id="cashREBUCalc" class="rebu-calc hidden"><strong>Cálculo REBU:</strong><div class="flex-row mt-1"><div>Margen: <span class="val" id="calcMargen">-</span></div><div>Base imp.: <span class="val" id="calcBase">-</span></div><div>IVA REBU: <span class="val" id="calcIVA">-</span></div></div></div>
+    <div class="flex-row mt-2">
+      <button class="btn btn-gold" onclick="registerCashSale()">💶 Registrar venta</button>
+      <button class="btn btn-outline" onclick="clearCashForm()">🔄 Limpiar</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Ventas en efectivo</div>
+    <div class="table-wrap"><table><thead><tr><th>Ref.</th><th>Fecha</th><th>Artículo</th><th>P.Compra</th><th>P.Venta</th><th>Margen</th><th>Tipo</th><th>Acciones</th></tr></thead><tbody id="cashTable"><tr class="neutral"><td colspan="8" style="text-align:center;padding:14px;color:var(--ink3)">Sin ventas en efectivo.</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- FOTOS -->
+<div id="page-photos" class="hidden">
+  <div class="section-banner" style="background:var(--gold-bg);color:var(--gold);border:1px solid #FFE082"><span style="font-size:20px">📸</span><div><strong>Fotos de Productos</strong> — Referencia automática TWS-AAAA-NNN. Se vinculan a recibos REBU.</div></div>
+  <div class="card">
+    <div class="card-title">📷 Añadir foto</div>
+    <div class="form-row form-row-2">
+      <div><label class="field-label">Referencia (opcional)</label><input type="text" id="photoRef" placeholder="Auto-generada"/></div>
+      <div><label class="field-label">Descripción</label><input type="text" id="photoDesc"/></div>
+    </div>
+    <div class="upload-zone" style="max-width:220px;padding:20px" onclick="document.getElementById('photoInput').click()">
+      <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="addPhoto(this)">
+      <div class="uz-icon">📸</div><p style="font-size:11px">Clic o cámara</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🖼️ Galería</div>
+    <div class="photo-grid" id="photoGrid"><div class="photo-add" onclick="document.getElementById('photoInput').click()">+</div></div>
+    <div class="flex-row mt-2">
+      <a class="drive-btn drive-connected" href="https://drive.google.com/drive/folders/18GuIAd8-1dcbmmudLtFkBAY4d5faUHro" target="_blank">☁️ Abrir carpeta Fotos en Drive →</a>
+    </div>
+  </div>
+</div>
+
+<!-- REBU -->
+<div id="page-rebu" class="hidden">
+  <div class="section-banner" style="background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-b)"><span style="font-size:20px">🧾</span><div><strong>Excel REBU</strong> — Resumen mensual para el Modelo 309 de IVA. Solo aparecen las ventas con ficha completa.</div></div>
+  <div class="card">
+    <div class="card-title">📊 Resumen REBU por mes</div>
+    <div class="month-tabs" id="rebuMonthTabs"></div>
+    <div class="table-wrap"><table><thead><tr><th>Ref.</th><th>Fecha</th><th>Artículo</th><th>P.Adq.</th><th>P.Venta</th><th>Margen</th><th>Base Imp.</th><th>IVA REBU</th><th>Canal</th></tr></thead><tbody id="rebuTable"><tr class="neutral"><td colspan="9" style="text-align:center;padding:14px;color:var(--ink3)">Sin datos REBU todavía.</td></tr></tbody></table></div>
+  </div>
+  <div class="flex-row mt-1">
+    <button class="btn btn-primary" onclick="exportREBUExcel()">📥 Descargar Excel REBU</button>
+    <a class="drive-btn drive-connected" href="https://drive.google.com/drive/folders/1xO-XNLFwokJpGyzZ6-XIyXI6__VcwznI" target="_blank">☁️ Abrir carpeta REBU en Drive →</a>
+  </div>
+</div>
+
+<!-- CONFIG -->
+<div id="page-config" class="hidden">
+  <div class="card">
+    <div class="card-title">⚙️ Datos fiscales</div>
+    <div class="config-section">
+      <h3>Datos personales y fiscales</h3>
+      <div class="form-row form-row-2">
+        <div><label class="field-label">Nombre completo *</label><input type="text" id="cfgName"/></div>
+        <div><label class="field-label">NIF/DNI *</label><input type="text" id="cfgNIF"/></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><label class="field-label">Dirección fiscal</label><input type="text" id="cfgAddr"/></div>
+        <div><label class="field-label">CP y Ciudad</label><input type="text" id="cfgCity" placeholder="40001 Segovia"/></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><label class="field-label">Teléfono</label><input type="text" id="cfgPhone"/></div>
+        <div><label class="field-label">Email fiscal</label><input type="email" id="cfgEmail"/></div>
+      </div>
+    </div>
+    <div class="config-section">
+      <h3>REBU y Vinted</h3>
+      <div class="form-row form-row-2">
+        <div><label class="field-label">Tipo IVA margen REBU</label><select id="cfgIVA"><option value="0.21">21%</option><option value="0.10">10%</option><option value="0.04">4%</option></select></div>
+        <div><label class="field-label">Prefijo recibos</label><input type="text" id="cfgPrefix" placeholder="TWS" maxlength="6"/></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><label class="field-label">CNAE</label><input type="text" id="cfgCNAE" placeholder="4779"/></div>
+        <div><label class="field-label">IAE</label><input type="text" id="cfgIAE" placeholder="659"/></div>
+      </div>
+    </div>
+    <div class="config-section">
+      <h3>Formato extracto bancario</h3>
+      <div class="form-row form-row-3">
+        <div><label class="field-label">Separador CSV</label><select id="cfgSep"><option value=",">Coma (,)</option><option value=";" selected>Punto y coma (;)</option><option value="\t">Tabulador</option></select></div>
+        <div><label class="field-label">Encoding</label><select id="cfgEnc"><option value="UTF-8">UTF-8</option><option value="ISO-8859-1">ISO-8859-1</option></select></div>
+        <div><label class="field-label">Formato fecha</label><select id="cfgDateFmt"><option value="dd/mm/yyyy">DD/MM/AAAA</option><option value="yyyy-mm-dd">AAAA-MM-DD</option></select></div>
+      </div>
+      <div class="form-row form-row-2">
+        <div><label class="field-label">Keywords VINTED</label><input type="text" id="cfgVintedKw" placeholder="VINTED,vinted"/></div>
+        <div><label class="field-label">Keywords BIZUM</label><input type="text" id="cfgBizumKw" placeholder="BIZUM,bizum"/></div>
+      </div>
+    </div>
+    <div class="config-section">
+      <h3>☁️ Carpetas de Google Drive</h3>
+      <div style="display:grid;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 01_Extractos_Bancarios</span><a href="https://drive.google.com/drive/folders/1_PLpYseG2D9FxUqM_7k3ikhPnKbovFiA" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 02_Recibos_REBU</span><a href="https://drive.google.com/drive/folders/1wtfDIPbtZYcRvvoj0Rc-PrfyGQBHGmqh" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 03_Excel_Mensual</span><a href="https://drive.google.com/drive/folders/1SlODHvZfKRoGaJiJA4YwNzsUq90xAvyu" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 04_Excel_REBU</span><a href="https://drive.google.com/drive/folders/1xO-XNLFwokJpGyzZ6-XIyXI6__VcwznI" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 05_Fotos_Productos</span><a href="https://drive.google.com/drive/folders/18GuIAd8-1dcbmmudLtFkBAY4d5faUHro" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="saveConfig()">💾 Guardar configuración</button>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app-shell -->
+
+<!-- MODAL RECIBO -->
+<div class="modal-overlay" id="receiptModal">
+  <div class="modal">
+    <div class="modal-title">🧾 Recibo REBU<button class="modal-close" onclick="closeModal('receiptModal')">✕</button></div>
+    <div id="receiptContent"></div>
+    <div class="flex-row mt-2">
+      <button class="btn btn-primary" onclick="downloadCurrentReceipt()">📥 Descargar PDF</button>
+      <a class="drive-btn drive-connected" href="https://drive.google.com/drive/folders/1wtfDIPbtZYcRvvoj0Rc-PrfyGQBHGmqh" target="_blank">☁️ Carpeta Recibos Drive →</a>
+      <button class="btn btn-outline" onclick="closeModal('receiptModal')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SELECTOR DE FOTOS -->
+<div class="modal-overlay" id="photoPickerModal">
+  <div class="modal">
+    <div class="modal-title">📸 Seleccionar foto del artículo<button class="modal-close" onclick="closeModal('photoPickerModal')">✕</button></div>
+    <p class="text-sm" style="margin-bottom:12px">Selecciona una foto de tu galería o sube una nueva:</p>
+    <div class="photo-picker-grid" id="photoPickerGrid"></div>
+    <div class="flex-row mt-2" style="border-top:1px solid #EAE0D5;padding-top:12px">
+      <button class="btn btn-gold btn-sm" onclick="document.getElementById('photoPickerUpload').click()">📷 Subir nueva foto</button>
+      <input type="file" id="photoPickerUpload" accept="image/*" capture="environment" onchange="addPhotoFromPicker(this)">
+      <button class="btn btn-green btn-sm" onclick="confirmPhotoPicker()" id="photoPickerConfirm" disabled>✅ Seleccionar</button>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('photoPickerModal');chatPickerResolve(null)">Sin foto</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const state={
+  config:{name:'',nif:'',addr:'',city:'Segovia',phone:'',email:'',iva:0.21,prefix:'TWS',cnae:'4779',iae:'659',sep:';',enc:'UTF-8',dateFmt:'dd/mm/yyyy',vintedKw:'VINTED,vinted',bizumKw:'BIZUM,bizum'},
+  movements:[],sales:[],cashSales:[],photos:[],pendingSales:[],
+  receiptCounter:1,currentReceipt:null,
+  chatbot:{step:0,data:{},pendingId:null}
+};
+try{const s=localStorage.getItem('tws_v4');if(s)Object.assign(state,JSON.parse(s));}catch(e){}
+function saveState(){try{localStorage.setItem('tws_v4',JSON.stringify(state));}catch(e){}}
+function fmt(n){return(parseFloat(n)||0).toLocaleString('es-ES',{style:'currency',currency:'EUR'});}
+function toast(msg,dur=2800){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function showTab(tab){
+  document.querySelectorAll('[id^="page-"]').forEach(el=>el.classList.add('hidden'));
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.remove('hidden');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='dashboard')updateDashboard();
+  if(tab==='sales'){renderAllSaleCards();renderSalesTable();initChatbot();}
+  if(tab==='rebu')renderREBU();
+  if(tab==='config')loadConfig();
+  if(tab==='photos')renderPhotoGrid();
+  if(tab==='cash'){renderCashTable();updatePhotoSelect();}
+}
+function typeLabel(t){const l={'income':'Ingreso','expense':'Gasto','vinted-in':'Vinted','vinted-out':'Vinted compra','bizum':'Bizum','cash-in':'Efectivo'};return`<span class="status-pill pill-${t==='vinted-in'||t==='cash-in'||t==='income'?'green':'red'}">${l[t]||t}</span>`;}
+function rowClass(t){return{income:'income',expense:'expense','vinted-in':'vinted-in','vinted-out':'vinted-out',bizum:'bizum','cash-in':'cash-in'}[t]||'neutral';}
+function groupByMonth(items){const m={};items.forEach(item=>{const d=item.date||item.saleDate||'';let key='Sin-fecha';if(d){const p=d.split(/[\/\-\.]/);if(p.length>=2){if(d.includes('-')&&p[0].length===4)key=p[0]+'-'+p[1];else key=(p[2]||p[1])+'-'+(p[1]?.length===2&&parseInt(p[1])<=12?p[1]:p[0]);}}if(!m[key])m[key]=[];m[key].push(item);});return m;}
+function monthLabel(key){if(key==='Sin-fecha')return'Sin fecha';const[y,m]=key.split('-');return(MONTHS[parseInt(m)-1]||m)+' '+y;}
+
+// LOGO
+document.getElementById('logoCircle').addEventListener('click',()=>document.getElementById('logoInput').click());
+document.getElementById('logoInput').addEventListener('change',function(){const f=this.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{document.getElementById('logoImg').src=e.target.result;document.getElementById('logoImg').style.display='block';document.getElementById('logoPlaceholder').style.display='none';state.logoData=e.target.result;saveState();};r.readAsDataURL(f);});
+if(state.logoData){document.getElementById('logoImg').src=state.logoData;document.getElementById('logoImg').style.display='block';document.getElementById('logoPlaceholder').style.display='none';}
+
+// DASHBOARD
+function updateDashboard(){
+  const all=[...state.movements,...state.sales.map(s=>({...s,amount:parseFloat(s.sellPrice)})),...state.cashSales.map(s=>({...s,amount:parseFloat(s.sellPrice)}))];
+  const inc=all.filter(m=>parseFloat(m.amount)>0).reduce((a,m)=>a+parseFloat(m.amount),0);
+  const exp=all.filter(m=>parseFloat(m.amount)<0).reduce((a,m)=>a+parseFloat(m.amount),0);
+  const vinted=state.sales.reduce((a,s)=>a+parseFloat(s.sellPrice||0),0)+state.cashSales.reduce((a,s)=>a+parseFloat(s.sellPrice||0),0);
+  const pending=state.pendingSales.filter(p=>!p.completed).length;
+  document.getElementById('ds-ingresos').textContent=fmt(inc);
+  document.getElementById('ds-gastos').textContent=fmt(Math.abs(exp));
+  document.getElementById('ds-balance').textContent=fmt(inc+exp);
+  document.getElementById('ds-vinted').textContent=fmt(vinted);
+  document.getElementById('ds-pendientes').textContent=pending;
+  const recent=[...all].slice(-8).reverse();
+  const tb=document.getElementById('recent-movements');
+  if(!recent.length){tb.innerHTML='<tr class="neutral"><td colspan="4" style="text-align:center;padding:18px;color:var(--ink3)">Sin movimientos.</td></tr>';return;}
+  tb.innerHTML=recent.map(m=>{const amt=parseFloat(m.amount||0);return`<tr class="${amt>=0?'income':'expense'}"><td>${m.date||m.saleDate||'-'}</td><td>${m.concept||m.description||'-'}</td><td><strong class="${amt>=0?'positive':'negative'}">${fmt(amt)}</strong></td><td>${typeLabel(m.type)}</td></tr>`;}).join('');
+}
+
+// BANK
+let bankRawData=[],bankHeaders=[];
+function loadBankFile(input){const file=input.files[0];if(!file)return;const ext=file.name.split('.').pop().toLowerCase();if(ext==='csv'){const r=new FileReader();r.onload=e=>parseCSV(e.target.result);r.readAsText(file,state.config.enc||'UTF-8');}else{const r=new FileReader();r.onload=e=>{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const data=XLSX.utils.sheet_to_json(ws,{header:1});bankHeaders=data[0].map(String);bankRawData=data.slice(1);showBankPreview();};r.readAsArrayBuffer(file);}}
+function parseCSV(text){const sep=state.config.sep||';';const lines=text.split('\n').filter(l=>l.trim());bankHeaders=lines[0].split(sep).map(h=>h.replace(/"/g,'').trim());bankRawData=lines.slice(1).map(l=>l.split(sep).map(c=>c.replace(/"/g,'').trim()));showBankPreview();}
+function showBankPreview(){const card=document.getElementById('bankPreviewCard');card.style.display='block';['colFecha','colConcepto','colImporte'].forEach(id=>{document.getElementById(id).innerHTML=bankHeaders.map((h,i)=>`<option value="${i}">${h}</option>`).join('');});const lower=bankHeaders.map(h=>h.toLowerCase());const fi=lower.findIndex(h=>h.includes('fecha')||h.includes('date'));const ci=lower.findIndex(h=>h.includes('concepto')||h.includes('descripci'));const ii=lower.findIndex(h=>h.includes('importe')||h.includes('amount'));if(fi>=0)document.getElementById('colFecha').value=fi;if(ci>=0)document.getElementById('colConcepto').value=ci;if(ii>=0)document.getElementById('colImporte').value=ii;toast('📋 Verifica columnas y pulsa Procesar.');}
+
+function processBankData(){
+  const fi=parseInt(document.getElementById('colFecha').value);
+  const ci=parseInt(document.getElementById('colConcepto').value);
+  const ii=parseInt(document.getElementById('colImporte').value);
+  const vKw=(state.config.vintedKw||'VINTED').split(',').map(k=>k.trim().toLowerCase());
+  const bKw=(state.config.bizumKw||'BIZUM').split(',').map(k=>k.trim().toLowerCase());
+  const newM=bankRawData.filter(row=>row.length>Math.max(fi,ci,ii)).map(row=>{
+    const date=row[fi]||'';const concept=row[ci]||'';
+    const amount=parseFloat(String(row[ii]).replace(/\./g,'').replace(',','.'))||0;
+    const cl=concept.toLowerCase();
+    let type=amount>=0?'income':'expense';
+    if(vKw.some(k=>cl.includes(k)))type=amount>=0?'vinted-in':'vinted-out';
+    else if(bKw.some(k=>cl.includes(k)))type='bizum';
+    return{date,concept,amount,type};
+  }).filter(m=>m.amount!==0||m.concept);
+  state.movements=[...state.movements,...newM];
+
+  // Auto-generate pending sales for vinted-in and bizum income
+  let newPending=0;
+  newM.forEach(m=>{
+    if((m.type==='vinted-in'||(m.type==='bizum'&&m.amount>0))){
+      const alreadyExists=state.pendingSales.some(p=>p.date===m.date&&p.amount===m.amount&&p.concept===m.concept);
+      const alreadyCompleted=state.sales.some(s=>s.date===m.date&&parseFloat(s.sellPrice)===m.amount);
+      if(!alreadyExists&&!alreadyCompleted){
+        const pid=`PEND-${Date.now()}-${Math.random().toString(36).substr(2,5)}`;
+        state.pendingSales.push({id:pid,date:m.date,concept:m.concept,amount:m.amount,type:m.type,completed:false});
+        newPending++;
+      }
+    }
+  });
+  saveState();
+  document.getElementById('bankPreviewCard').style.display='none';
+  renderBankResult();
+  toast(`✅ ${newM.length} movimientos importados. ${newPending} ventas pendientes de ficha añadidas.`);
+  updateDashboard();
+}
+
+function renderBankResult(){document.getElementById('bankResultCard').style.display='block';const months=groupByMonth(state.movements);const keys=Object.keys(months).sort();document.getElementById('bankMonthTabs').innerHTML=keys.map((k,i)=>`<span class="month-tab ${i===0?'active':''}" onclick="showBankMonth('${k}',this)">${monthLabel(k)}</span>`).join('');if(keys.length)showBankMonth(keys[0]);}
+function showBankMonth(key,el){document.querySelectorAll('#bankMonthTabs .month-tab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');const rows=(groupByMonth(state.movements)[key])||[];const tInc=rows.filter(r=>r.amount>0).reduce((a,r)=>a+r.amount,0);const tExp=rows.filter(r=>r.amount<0).reduce((a,r)=>a+r.amount,0);const vIn=rows.filter(r=>r.type==='vinted-in').reduce((a,r)=>a+r.amount,0);const vOut=rows.filter(r=>r.type==='vinted-out').reduce((a,r)=>a+r.amount,0);const biz=rows.filter(r=>r.type==='bizum').reduce((a,r)=>a+r.amount,0);document.getElementById('bankMonthSummary').innerHTML=`<div class="summary-box sb-green"><div class="sb-val">${fmt(tInc)}</div><div class="sb-lbl">INGRESOS</div></div><div class="summary-box sb-red"><div class="sb-val">${fmt(Math.abs(tExp))}</div><div class="sb-lbl">GASTOS</div></div><div class="summary-box ${(tInc+tExp)>=0?'sb-green':'sb-red'}"><div class="sb-val">${fmt(tInc+tExp)}</div><div class="sb-lbl">BALANCE</div></div><div class="summary-box sb-gold"><div class="sb-val">${fmt(vIn)}</div><div class="sb-lbl">VENTAS VINTED</div></div><div class="summary-box" style="background:#FFF3E0;color:#E65100"><div class="sb-val">${fmt(Math.abs(vOut))}</div><div class="sb-lbl">COMPRAS VINTED</div></div><div class="summary-box sb-purple"><div class="sb-val">${fmt(biz)}</div><div class="sb-lbl">BALANCE BIZUM</div></div>`;document.getElementById('bankTable').innerHTML=rows.map(r=>`<tr class="${rowClass(r.type)}"><td>${r.date}</td><td>${r.concept}</td><td><strong class="${r.amount>=0?'positive':'negative'}">${fmt(r.amount)}</strong></td><td>${typeLabel(r.type)}</td></tr>`).join('')+`<tr class="total-row"><td colspan="2"><strong>TOTAL MES</strong></td><td colspan="2"><strong>${fmt(tInc+tExp)}</strong></td></tr>`;}
+
+// ALL SALE CARDS (complete + pending)
+function renderAllSaleCards(){
+  const container=document.getElementById('allSaleCards');
+  const completed=state.sales.map(s=>({...s,_status:'complete'}));
+  const pending=state.pendingSales.filter(p=>!p.completed).map(p=>({...p,_status:'pending'}));
+  const cashCompleted=state.cashSales.map(s=>({...s,_status:'complete',isCash:true}));
+  const all=[...completed,...cashCompleted,...pending].sort((a,b)=>{
+    const da=(a.saleDate||a.date||'').split('/').reverse().join('');
+    const db=(b.saleDate||b.date||'').split('/').reverse().join('');
+    return db.localeCompare(da);
+  });
+  if(!all.length){container.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3);font-size:13px">Importa un extracto bancario para ver las ventas pendientes, o registra una nueva venta.</div>';return;}
+  container.innerHTML=all.map(item=>{
+    if(item._status==='complete'){
+      const photo=state.photos.find(p=>p.ref===item.photoRef);
+      return`<div class="sale-card complete" onclick="showReceiptModal('${item.ref}')">
+        ${photo?`<img src="${photo.data}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0" alt="foto"/>`:`<div class="sale-card-icon">✅</div>`}
+        <div class="sale-card-body">
+          <div class="sale-card-title">${item.description||'Artículo'} <span class="sale-card-badge badge-complete">${item.isCash?'EFECTIVO':'VINTED'}</span></div>
+          <div class="sale-card-meta">${item.saleDate||item.date||'-'} · Ref: ${item.ref} ${item.buyerName?'· '+item.buyerName:''}</div>
+        </div>
+        <div class="sale-card-amount">${fmt(item.sellPrice)}</div>
+      </div>`;
+    } else {
+      const icon=item.type==='bizum'?'💜':'🛍️';
+      return`<div class="sale-card pending" onclick="startCompleteSale('${item.id}')">
+        <div class="sale-card-icon">${icon}</div>
+        <div class="sale-card-body">
+          <div class="sale-card-title">${item.concept||'Venta Vinted/Bizum'} <span class="sale-card-badge badge-pending">PENDIENTE</span></div>
+          <div class="sale-card-meta">${item.date||'-'} · Pulsa para completar la ficha REBU</div>
+        </div>
+        <div class="sale-card-amount">${fmt(item.amount)}</div>
+      </div>`;
+    }
+  }).join('');
+}
+
+// START COMPLETING A PENDING SALE
+function startCompleteSale(pendingId){
+  const pending=state.pendingSales.find(p=>p.id===pendingId);
+  if(!pending)return;
+  state.chatbot={step:0,data:{},pendingId};
+  // Pre-fill date and amount from bank movement
+  const dateFormatted=pending.date||'';
+  state.chatbot.data._prefillDate=dateFormatted;
+  state.chatbot.data._prefillAmount=pending.amount;
+  document.getElementById('completionBanner').classList.remove('hidden');
+  document.getElementById('completionBanner').innerHTML=`🟣 Completando ficha para venta detectada en extracto: <strong>${pending.concept}</strong> · <strong>${fmt(pending.amount)}</strong> · ${pending.date}`;
+  document.getElementById('chatCardTitle').textContent='🤖 Completar ficha REBU — Venta pendiente';
+  renderChatbot();
+  document.getElementById('salesChatCard').scrollIntoView({behavior:'smooth'});
+}
+
+// CHATBOT
+const chatSteps=[
+  {id:'saleDate',q:'📅 ¿Fecha de la venta? (DD/MM/AAAA)',type:'date'},
+  {id:'description',q:'👗 Describe el artículo (tipo, marca, talla, color…)',type:'text'},
+  {id:'condition',q:'✅ ¿Estado del artículo?',type:'select',opts:['Buen estado','Muy buen estado','Nuevo sin etiqueta','Nuevo con etiqueta','Estado aceptable']},
+  {id:'buyerName',q:'👤 ¿Nombre o usuario del comprador?',type:'text'},
+  {id:'buyerDNI',q:'🪪 ¿DNI/NIF del comprador? (deja en blanco si no lo sabes)',type:'text',optional:true},
+  {id:'buyerEmail',q:'📧 ¿Email del comprador? (escribe "no" para saltar)',type:'text'},
+  {id:'buyPrice',q:'💰 ¿Precio de coste del artículo cuando lo adquiriste? (€)',type:'number'},
+  {id:'sellPrice',q:'💶 ¿Precio de venta? (€)',type:'number'},
+  {id:'photoRef',q:'📸 ¿Foto del artículo?',type:'photo'},
+  {id:'notes',q:'📝 ¿Notas adicionales? ("no" para saltar)',type:'text'},
+];
+
+function initChatbot(){
+  if(state.chatbot.pendingId)return; // don't reset if completing pending
+  state.chatbot={step:0,data:{},pendingId:null};
+  document.getElementById('completionBanner').classList.add('hidden');
+  document.getElementById('chatCardTitle').textContent='🤖 Asistente REBU — Nueva venta';
+  renderChatbot();
+}
+
+function renderChatbot(){
+  document.getElementById('chatStepProgress').innerHTML=chatSteps.map((s,i)=>`<div class="step-dot ${i<state.chatbot.step?'done':i===state.chatbot.step?'active':''}">${i+1}</div>`).join('');
+  const msgs=document.getElementById('chatMessages');msgs.innerHTML='';
+  for(let i=0;i<state.chatbot.step;i++){
+    const s=chatSteps[i];
+    const val=state.chatbot.data[s.id];
+    if(s.type==='photo'){
+      const photo=state.photos.find(p=>p.ref===val);
+      msgs.innerHTML+=`<div class="chat-step"><div class="chat-q">${s.q}</div><div style="margin-left:12px;font-size:13px;color:var(--stone-dark);display:flex;align-items:center;gap:8px">${photo?`<img src="${photo.data}" style="width:36px;height:36px;border-radius:6px;object-fit:cover"/>`:''} ✓ ${val||'Sin foto'}</div></div>`;
+    } else {
+      msgs.innerHTML+=`<div class="chat-step"><div class="chat-q">${s.q}</div><div style="margin-left:12px;font-size:13px;color:var(--stone-dark)">✓ ${val||'—'}</div></div>`;
+    }
+  }
+  const ia=document.getElementById('chatInputArea');
+  if(state.chatbot.step>=chatSteps.length){ia.innerHTML='';finalizeSale();return;}
+  const s=chatSteps[state.chatbot.step];
+
+  // Pre-fill date from pending
+  if(s.id==='saleDate'&&state.chatbot.data._prefillDate&&!state.chatbot.data.saleDate){
+    state.chatbot.data.saleDate=state.chatbot.data._prefillDate;
+  }
+  if(s.id==='sellPrice'&&state.chatbot.data._prefillAmount&&!state.chatbot.data.sellPrice){
+    state.chatbot.data.sellPrice=state.chatbot.data._prefillAmount;
+  }
+
+  msgs.innerHTML+=`<div class="chat-step"><div class="chat-q">${s.q}</div></div>`;
+
+  if(s.type==='select'){
+    ia.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap">${s.opts.map(o=>`<button class="btn btn-outline btn-sm" onclick="chatAnswer('${o}')">${o}</button>`).join('')}</div>`;
+  } else if(s.type==='photo'){
+    ia.innerHTML=`<div class="flex-row">
+      <button class="btn btn-gold btn-sm" onclick="openPhotoPicker()">📸 Buscar en galería</button>
+      <button class="btn btn-outline btn-sm" onclick="chatAnswer('')">Sin foto</button>
+    </div>`;
+  } else {
+    const prefill=state.chatbot.data[s.id]||'';
+    ia.innerHTML=`<div class="flex-row">
+      <input type="${s.type==='number'?'number':'text'}" id="chatInput" value="${prefill}" style="flex:1" ${s.type==='number'?'step="0.01" min="0"':''} placeholder="${s.optional?'Opcional — pulsa → para saltar':''}" onkeydown="if(event.key==='Enter')chatSubmit()"/>
+      <button class="btn btn-primary btn-sm" onclick="chatSubmit()">→</button>
+    </div>`;
+    setTimeout(()=>{const el=document.getElementById('chatInput');if(el)el.focus();},100);
+  }
+}
+
+function chatAnswer(val){state.chatbot.data[chatSteps[state.chatbot.step].id]=val;state.chatbot.step++;renderChatbot();}
+function chatSubmit(){const input=document.getElementById('chatInput');if(!input)return;const s=chatSteps[state.chatbot.step];const val=input.value.trim();if(!val&&!s.optional){toast('⚠️ Campo obligatorio. Pulsa → para saltar si es opcional.');return;}chatAnswer(val);}
+
+// PHOTO PICKER
+let photoPickerResolve=null;
+function openPhotoPicker(){
+  const grid=document.getElementById('photoPickerGrid');
+  if(!state.photos.length){
+    grid.innerHTML='<div class="photo-picker-empty">No hay fotos en tu galería.<br/>Sube una nueva con el botón de abajo.</div>';
+  } else {
+    grid.innerHTML=state.photos.map(p=>`<div class="photo-picker-item" id="pp-${p.ref}" onclick="selectPickerPhoto('${p.ref}')"><img src="${p.data}" alt="${p.desc}"/><div class="pref">${p.ref}</div></div>`).join('');
+  }
+  document.getElementById('photoPickerConfirm').disabled=true;
+  openModal('photoPickerModal');
+}
+let selectedPickerRef=null;
+function selectPickerPhoto(ref){
+  document.querySelectorAll('.photo-picker-item').forEach(el=>el.classList.remove('selected'));
+  const el=document.getElementById('pp-'+ref);if(el)el.classList.add('selected');
+  selectedPickerRef=ref;
+  document.getElementById('photoPickerConfirm').disabled=false;
+}
+function confirmPhotoPicker(){
+  closeModal('photoPickerModal');
+  chatAnswer(selectedPickerRef||'');
+  selectedPickerRef=null;
+}
+function addPhotoFromPicker(input){
+  const file=input.files[0];if(!file)return;
+  const ref=`${state.config.prefix||'TWS'}-${new Date().getFullYear()}-F${String(state.photos.length+1).padStart(3,'0')}`;
+  const r=new FileReader();r.onload=e=>{
+    state.photos.push({ref,desc:'Artículo',data:e.target.result,date:new Date().toLocaleDateString('es-ES')});
+    saveState();
+    // Refresh picker grid
+    const grid=document.getElementById('photoPickerGrid');
+    const newItem=document.createElement('div');
+    newItem.className='photo-picker-item';newItem.id='pp-'+ref;newItem.onclick=()=>selectPickerPhoto(ref);
+    newItem.innerHTML=`<img src="${e.target.result}" alt=""/><div class="pref">${ref}</div>`;
+    grid.appendChild(newItem);
+    toast(`📸 Foto añadida: ${ref}`);
+  };r.readAsDataURL(file);
+}
+
+function finalizeSale(){
+  const d=state.chatbot.data;
+  const ref=`${state.config.prefix||'TWS'}-${new Date().getFullYear()}-${String(state.receiptCounter++).padStart(3,'0')}`;
+  const buyPrice=parseFloat(d.buyPrice)||0,sellPrice=parseFloat(d.sellPrice||d._prefillAmount)||0;
+  const ivaRate=parseFloat(state.config.iva)||0.21;
+  const margin=sellPrice-buyPrice,ivaBase=margin/(1+ivaRate),iva=ivaBase*ivaRate;
+  const sale={ref,saleDate:d.saleDate,description:d.description,condition:d.condition,
+    buyerName:d.buyerName,buyerDNI:d.buyerDNI||'',buyerEmail:d.buyerEmail,
+    buyPrice,sellPrice,margin,ivaBase,iva,photoRef:d.photoRef,notes:d.notes,
+    type:'vinted-in',amount:sellPrice,date:d.saleDate};
+  state.sales.push(sale);
+
+  // Mark pending as completed if applicable
+  if(state.chatbot.pendingId){
+    const p=state.pendingSales.find(x=>x.id===state.chatbot.pendingId);
+    if(p){p.completed=true;p.saleRef=ref;}
+  }
+  state.chatbot={step:0,data:{},pendingId:null};
+  saveState();
+  renderSalesTable();
+  renderAllSaleCards();
+  updateDashboard();
+  document.getElementById('completionBanner').classList.add('hidden');
+  document.getElementById('chatCardTitle').textContent='🤖 Asistente REBU — Nueva venta';
+  document.getElementById('chatMessages').innerHTML=`<div style="text-align:center;padding:20px;color:var(--green)"><div style="font-size:40px">✅</div><div style="font-size:16px;font-weight:bold;margin-top:8px">¡Ficha completada!</div><div style="font-size:13px;color:var(--ink2);margin-top:4px">Ref: ${ref} · ${fmt(sellPrice)} · Margen: ${fmt(margin)}</div></div>`;
+  document.getElementById('chatInputArea').innerHTML=`<div class="flex-row" style="justify-content:center;margin-top:10px"><button class="btn btn-primary" onclick="showReceiptModal('${ref}')">🧾 Ver recibo REBU</button><button class="btn btn-green" onclick="initChatbot()">➕ Nueva venta</button></div>`;
+  toast('✅ Ficha completada y recibo REBU generado.');
+}
+
+function renderSalesTable(){
+  const tb=document.getElementById('salesTable');
+  if(!state.sales.length){tb.innerHTML='<tr class="neutral"><td colspan="8" style="text-align:center;padding:14px;color:var(--ink3)">Sin ventas completadas.</td></tr>';return;}
+  tb.innerHTML=state.sales.map(s=>`<tr class="vinted-in"><td><code style="font-size:11px">${s.ref}</code></td><td>${s.saleDate}</td><td>${s.description}</td><td>${fmt(s.buyPrice)}</td><td><strong>${fmt(s.sellPrice)}</strong></td><td>${fmt(s.margin)}</td><td>${fmt(s.iva)}</td><td><button class="btn btn-outline btn-sm" onclick="showReceiptModal('${s.ref}')">🧾</button></td></tr>`).join('');
+}
+
+// CASH SALES
+document.getElementById('cashSell').addEventListener('input',updateCashREBU);
+document.getElementById('cashBuy').addEventListener('input',updateCashREBU);
+function updateCashREBU(){const buy=parseFloat(document.getElementById('cashBuy').value)||0;const sell=parseFloat(document.getElementById('cashSell').value)||0;if(buy>0||sell>0){const ir=parseFloat(state.config.iva)||0.21;const m=sell-buy;const b=m/(1+ir);document.getElementById('calcMargen').textContent=fmt(m);document.getElementById('calcBase').textContent=fmt(b);document.getElementById('calcIVA').textContent=fmt(b*ir);document.getElementById('cashREBUCalc').classList.remove('hidden');}}
+function registerCashSale(){const date=document.getElementById('cashDate').value,desc=document.getElementById('cashDesc').value.trim();const buy=parseFloat(document.getElementById('cashBuy').value)||0,sell=parseFloat(document.getElementById('cashSell').value)||0;if(!date||!desc||!sell){toast('⚠️ Completa los campos obligatorios (*)');return;}const ref=document.getElementById('cashRef').value.trim()||`${state.config.prefix||'TWS'}-EF-${new Date().getFullYear()}-${String(state.receiptCounter++).padStart(3,'0')}`;const ir=parseFloat(state.config.iva)||0.21,margin=sell-buy,ivaBase=margin/(1+ir);const sale={ref,saleDate:date,description:desc,condition:document.getElementById('cashCondition').value,buyerName:document.getElementById('cashBuyer').value.trim(),buyPrice:buy,sellPrice:sell,margin,ivaBase,iva:ivaBase*ir,photoRef:document.getElementById('cashPhoto').value,type:'cash-in',amount:sell,date,isCash:true};state.cashSales.push(sale);saveState();renderCashTable();updateDashboard();clearCashForm();toast('✅ Venta en efectivo registrada.');showReceiptModal(ref);}
+function clearCashForm(){['cashDate','cashRef','cashDesc','cashBuy','cashSell','cashBuyer'].forEach(id=>document.getElementById(id).value='');document.getElementById('cashREBUCalc').classList.add('hidden');}
+function renderCashTable(){const tb=document.getElementById('cashTable');if(!state.cashSales.length){tb.innerHTML='<tr class="neutral"><td colspan="8" style="text-align:center;padding:14px;color:var(--ink3)">Sin ventas en efectivo.</td></tr>';return;}tb.innerHTML=state.cashSales.map(s=>`<tr class="cash-in"><td><code style="font-size:11px">${s.ref}</code></td><td>${s.saleDate}</td><td>${s.description}</td><td>${fmt(s.buyPrice)}</td><td><strong>${fmt(s.sellPrice)}</strong></td><td>${fmt(s.margin)}</td><td><span class="status-pill pill-gold">EFECTIVO</span></td><td><button class="btn btn-outline btn-sm" onclick="showReceiptModal('${s.ref}')">🧾</button></td></tr>`).join('');}
+
+// PHOTOS
+function addPhoto(input){const file=input.files[0];if(!file)return;const ref=document.getElementById('photoRef').value.trim()||`${state.config.prefix||'TWS'}-${new Date().getFullYear()}-F${String(state.photos.length+1).padStart(3,'0')}`;const desc=document.getElementById('photoDesc').value.trim()||'Artículo';const r=new FileReader();r.onload=e=>{state.photos.push({ref,desc,data:e.target.result,date:new Date().toLocaleDateString('es-ES')});saveState();renderPhotoGrid();updatePhotoSelect();toast(`📸 Foto guardada: ${ref}`);document.getElementById('photoRef').value='';document.getElementById('photoDesc').value='';};r.readAsDataURL(file);}
+function renderPhotoGrid(){document.getElementById('photoGrid').innerHTML=state.photos.map(p=>`<div class="photo-thumb"><img src="${p.data}" alt="${p.desc}"/><div class="photo-ref">${p.ref}</div></div>`).join('')+`<div class="photo-add" onclick="document.getElementById('photoInput').click()">+</div>`;}
+function updatePhotoSelect(){document.getElementById('cashPhoto').innerHTML='<option value="">Sin foto</option>'+state.photos.map(p=>`<option value="${p.ref}">${p.ref} — ${p.desc}</option>`).join('');}
+
+// RECEIPT
+function showReceiptModal(ref){
+  const sale=[...state.sales,...state.cashSales].find(s=>s.ref===ref);if(!sale)return;
+  state.currentReceipt=sale;const cfg=state.config;
+  const photo=state.photos.find(p=>p.ref===sale.photoRef);
+  document.getElementById('receiptContent').innerHTML=`<div class="receipt">
+    <div class="receipt-header"><strong style="font-size:14px">${cfg.name||'THE WHITE STONES APP'}</strong><br/>NIF: ${cfg.nif||'---'}<br/>${cfg.addr||'Dirección fiscal'}<br/>${cfg.city||'Segovia'}${cfg.phone?' · '+cfg.phone:''}<br/><br/><strong>RECIBO DE VENTA — RÉGIMEN REBU</strong><br/><small>Art. 135 a 139 Ley 37/1992 LIVA</small></div>
+    <div class="receipt-row"><span><strong>Nº Recibo:</strong></span><span>${sale.ref}</span></div>
+    <div class="receipt-row"><span><strong>Fecha:</strong></span><span>${sale.saleDate||sale.date}</span></div>
+    ${sale.isCash?'<div class="receipt-row"><span><strong>Pago:</strong></span><span>💶 EFECTIVO</span></div>':''}
+    <hr style="border:none;border-top:1px dashed #ccc;margin:8px 0"/>
+    <div class="receipt-row"><span><strong>COMPRADOR:</strong></span><span>${sale.buyerName||'—'}</span></div>
+    ${sale.buyerDNI?`<div class="receipt-row"><span>DNI/NIF:</span><span>${sale.buyerDNI}</span></div>`:''}
+    ${sale.buyerEmail&&sale.buyerEmail!=='no'?`<div class="receipt-row"><span>Email:</span><span>${sale.buyerEmail}</span></div>`:''}
+    <hr style="border:none;border-top:1px dashed #ccc;margin:8px 0"/>
+    <div><strong>ARTÍCULO:</strong></div>
+    <div style="margin:4px 0;font-size:11px">${sale.description}</div>
+    <div class="receipt-row"><span>Estado:</span><span>${sale.condition||'—'}</span></div>
+    ${sale.photoRef&&sale.photoRef!=='no'&&sale.photoRef?`<div class="receipt-row"><span>Ref. foto:</span><span>${sale.photoRef}</span></div>`:''}
+    <hr style="border:none;border-top:1px dashed #ccc;margin:8px 0"/>
+    <div class="receipt-row"><span>P. adquisición:</span><span>${fmt(sale.buyPrice)}</span></div>
+    <div class="receipt-row"><span>P. venta:</span><span>${fmt(sale.sellPrice)}</span></div>
+    <div class="receipt-row receipt-total"><span>Margen REBU:</span><span>${fmt(sale.margin)}</span></div>
+    <div class="receipt-row"><span>Base imponible:</span><span>${fmt(sale.ivaBase)}</span></div>
+    <div class="receipt-row"><span>IVA s/margen (21%):</span><span>${fmt(sale.iva)}</span></div>
+    <div class="receipt-row receipt-total"><span><strong>TOTAL:</strong></span><span><strong>${fmt(sale.sellPrice)}</strong></span></div>
+    <div class="receipt-footer">Régimen Especial de Bienes Usados (REBU)<br/>El IVA no puede deducirse por el destinatario.<br/>${cfg.cnae?'CNAE: '+cfg.cnae:''} ${cfg.iae?'· IAE: '+cfg.iae:''}</div>
+  </div>
+  ${photo?`<div style="text-align:center;margin-top:12px"><img src="${photo.data}" style="max-width:200px;border-radius:8px;border:1px solid #ccc"/><div class="text-xs mt-1">${photo.ref}</div></div>`:''}`;
+  openModal('receiptModal');
+}
+
+function downloadCurrentReceipt(){
+  if(!state.currentReceipt)return;
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a6'});
+  const s=state.currentReceipt,cfg=state.config;let y=10;
+  const line=(txt,bold=false,size=9)=>{doc.setFontSize(size);doc.setFont('helvetica',bold?'bold':'normal');doc.text(txt,10,y);y+=size*0.45+1.5;};
+  const dline=()=>{doc.setDrawColor(180);doc.line(10,y,95,y);y+=3;};
+  line(cfg.name||'THE WHITE STONES APP',true,11);line('NIF: '+(cfg.nif||'---'));line(cfg.addr||'');line((cfg.city||'Segovia')+(cfg.phone?' · '+cfg.phone:''));dline();
+  line('RECIBO REBU Nº: '+s.ref,true,10);line('Fecha: '+(s.saleDate||s.date));if(s.isCash)line('Pago: EFECTIVO');dline();
+  line('COMPRADOR: '+(s.buyerName||'—'));
+  if(s.buyerDNI)line('DNI/NIF: '+s.buyerDNI);
+  if(s.buyerEmail&&s.buyerEmail!=='no')line('Email: '+s.buyerEmail,false,8);dline();
+  line('ARTÍCULO:',true);doc.splitTextToSize(s.description||'',80).forEach(dl=>{doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text(dl,12,y);y+=4.5;});
+  line('Estado: '+(s.condition||'—'));if(s.photoRef&&s.photoRef!=='no'&&s.photoRef)line('Ref. foto: '+s.photoRef);dline();
+  line('P. adquisición: '+fmt(s.buyPrice));line('P. venta: '+fmt(s.sellPrice));line('Margen REBU: '+fmt(s.margin),true);line('Base imponible: '+fmt(s.ivaBase));line('IVA s/margen (21%): '+fmt(s.iva));dline();
+  line('TOTAL: '+fmt(s.sellPrice),true,11);dline();
+  line('Régimen Especial Bienes Usados',false,7);line('Art. 135-139 Ley 37/1992 LIVA',false,7);line('IVA no deducible por el destinatario.',false,7);
+  doc.save(`Recibo_REBU_${s.ref}.pdf`);toast('📥 PDF descargado.');
+}
+
+// REBU
+function renderREBU(){const all=[...state.sales,...state.cashSales];const months=groupByMonth(all.map(s=>({...s,date:s.saleDate||s.date})));const keys=Object.keys(months).sort();document.getElementById('rebuMonthTabs').innerHTML=keys.map((k,i)=>`<span class="month-tab ${i===0?'active':''}" onclick="showREBUMonth('${k}',this)">${monthLabel(k)}</span>`).join('');if(keys.length)showREBUMonth(keys[0]);else document.getElementById('rebuTable').innerHTML='<tr class="neutral"><td colspan="9" style="text-align:center;padding:14px;color:var(--ink3)">Sin ventas REBU todavía.</td></tr>';}
+function showREBUMonth(key,el){document.querySelectorAll('#rebuMonthTabs .month-tab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');const all=[...state.sales,...state.cashSales];const rows=(groupByMonth(all.map(s=>({...s,date:s.saleDate||s.date})))[key])||[];const tBase=rows.reduce((a,r)=>a+(r.ivaBase||0),0),tIVA=rows.reduce((a,r)=>a+(r.iva||0),0),tMargin=rows.reduce((a,r)=>a+(r.margin||0),0);document.getElementById('rebuTable').innerHTML=rows.map(s=>`<tr class="vinted-in"><td><code style="font-size:10px">${s.ref}</code></td><td>${s.saleDate||s.date}</td><td>${s.description}</td><td>${fmt(s.buyPrice)}</td><td>${fmt(s.sellPrice)}</td><td>${fmt(s.margin)}</td><td>${fmt(s.ivaBase)}</td><td>${fmt(s.iva)}</td><td>${s.isCash?'<span class="rebu-tag">EFECTIVO</span>':'<span class="rebu-tag">VINTED</span>'}</td></tr>`).join('')+`<tr class="total-row"><td colspan="5"><strong>TOTALES</strong></td><td><strong>${fmt(tMargin)}</strong></td><td><strong>${fmt(tBase)}</strong></td><td><strong>${fmt(tIVA)}</strong></td><td></td></tr>`;}
+
+// EXPORTS
+function exportBankExcel(){if(!state.movements.length){toast('⚠️ No hay movimientos.');return;}const wb=XLSX.utils.book_new();const months=groupByMonth(state.movements);Object.keys(months).sort().forEach(key=>{const rows=months[key];const data=[['Fecha','Concepto','Importe','Tipo'],...rows.map(r=>[r.date,r.concept,r.amount,r.type]),[],['','TOTAL INGRESOS',rows.filter(r=>r.amount>0).reduce((a,r)=>a+r.amount,0),''],['','TOTAL GASTOS',rows.filter(r=>r.amount<0).reduce((a,r)=>a+r.amount,0),''],['','BALANCE',rows.reduce((a,r)=>a+r.amount,0),''],['','VENTAS VINTED',rows.filter(r=>r.type==='vinted-in').reduce((a,r)=>a+r.amount,0),''],['','COMPRAS VINTED',rows.filter(r=>r.type==='vinted-out').reduce((a,r)=>a+r.amount,0),''],['','BALANCE BIZUM',rows.filter(r=>r.type==='bizum').reduce((a,r)=>a+r.amount,0),'']];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),monthLabel(key).substring(0,28));});XLSX.writeFile(wb,`TWS_Extracto_${new Date().getFullYear()}.xlsx`);toast('📥 Excel descargado.');}
+function exportREBUExcel(){const all=[...state.sales,...state.cashSales];if(!all.length){toast('⚠️ No hay ventas REBU.');return;}const wb=XLSX.utils.book_new();const months=groupByMonth(all.map(s=>({...s,date:s.saleDate||s.date})));Object.keys(months).sort().forEach(key=>{const rows=months[key];const tBase=rows.reduce((a,r)=>a+(r.ivaBase||0),0),tIVA=rows.reduce((a,r)=>a+(r.iva||0),0),tMargin=rows.reduce((a,r)=>a+(r.margin||0),0);const data=[['Nº Recibo','Fecha','Artículo','DNI Comprador','P.Adquisición','P.Venta','Margen','Base Imp.','IVA REBU','Canal'],...rows.map(r=>[r.ref,r.saleDate||r.date,r.description,r.buyerDNI||'',r.buyPrice,r.sellPrice,r.margin,r.ivaBase,r.iva,r.isCash?'EFECTIVO':'VINTED']),[],[' ',' ','TOTALES','',rows.reduce((a,r)=>a+(r.buyPrice||0),0),rows.reduce((a,r)=>a+(r.sellPrice||0),0),tMargin,tBase,tIVA,''],[],[' ',' ','MODELO 309 — IVA REBU','','','','','','',''],[' ',' ',' ','','Base imponible total:',tBase,' ',' ',' ',' '],[' ',' ',' ','','IVA repercutido total:',tIVA,' ',' ',' ',' ']];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),('REBU_'+monthLabel(key)).substring(0,28));});XLSX.writeFile(wb,`TWS_REBU_${new Date().getFullYear()}.xlsx`);toast('📥 Excel REBU descargado.');}
+
+// CONFIG
+function loadConfig(){const c=state.config;const map={cfgName:'name',cfgNIF:'nif',cfgAddr:'addr',cfgCity:'city',cfgPhone:'phone',cfgEmail:'email',cfgCNAE:'cnae',cfgIAE:'iae',cfgPrefix:'prefix',cfgVintedKw:'vintedKw',cfgBizumKw:'bizumKw'};Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=c[key]||'';});if(document.getElementById('cfgIVA'))document.getElementById('cfgIVA').value=c.iva||0.21;if(document.getElementById('cfgSep'))document.getElementById('cfgSep').value=c.sep||';';}
+function saveConfig(){const get=id=>document.getElementById(id)?.value||'';state.config={name:get('cfgName'),nif:get('cfgNIF'),addr:get('cfgAddr'),city:get('cfgCity'),phone:get('cfgPhone'),email:get('cfgEmail'),cnae:get('cfgCNAE'),iae:get('cfgIAE'),prefix:get('cfgPrefix')||'TWS',iva:parseFloat(get('cfgIVA'))||0.21,sep:get('cfgSep')||';',enc:get('cfgEnc')||'UTF-8',dateFmt:get('cfgDateFmt')||'dd/mm/yyyy',vintedKw:get('cfgVintedKw')||'VINTED,vinted',bizumKw:get('cfgBizumKw')||'BIZUM,bizum'};saveState();toast('✅ Configuración guardada.');}
+
+// LOGIN
+function doLogin(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value.trim();
+  const err=document.getElementById('loginError');
+  if(u==='WhitestoneFer'&&p==='Lilitiafavorita'){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('appShell').style.display='flex';
+    sessionStorage.setItem('tws_auth','1');
+    err.style.display='none';
+  } else {
+    err.style.display='block';
+    document.getElementById('loginPass').value='';
+    document.getElementById('loginPass').focus();
+  }
+}
+// Auto-login if already authenticated this session
+if(sessionStorage.getItem('tws_auth')==='1'){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appShell').style.display='flex';
+}
+
+// INIT
+updatePhotoSelect();
+if(state.movements.length)renderBankResult();
+if(state.sales.length)renderSalesTable();
+if(state.cashSales.length)renderCashTable();
+updateDashboard();
+</script>
+</body>
+</html>
