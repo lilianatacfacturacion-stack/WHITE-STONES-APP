@@ -206,6 +206,7 @@ input[type=file]{display:none}
   <button class="nav-btn" onclick="showTab('cash')" id="tab-cash"><span>💶</span>Efectivo</button>
   <button class="nav-btn" onclick="showTab('photos')" id="tab-photos"><span>📸</span>Fotos</button>
   <button class="nav-btn" onclick="showTab('rebu')" id="tab-rebu"><span>🧾</span>REBU</button>
+  <button class="nav-btn" onclick="showTab('libro')" id="tab-libro"><span>📒</span>Libro compras</button>
   <button class="nav-btn" onclick="showTab('docs')" id="tab-docs"><span>🗂️</span>Docs fiscales</button>
   <button class="nav-btn" onclick="showTab('config')" id="tab-config"><span>⚙️</span>Config</button>
 </div>
@@ -383,6 +384,29 @@ input[type=file]{display:none}
 </div>
 
 <!-- CONFIG -->
+<!-- LIBRO DE COMPRAS -->
+<div id="page-libro" class="hidden">
+  <div class="section-banner" style="background:var(--gold-bg);color:var(--gold);border:1px solid #FFE082"><span style="font-size:20px">📒</span><div><strong>Libro registro de compras</strong> — importa el Excel de Fernando</div></div>
+  <div class="card">
+    <div class="card-title">📥 Importar Excel</div>
+    <p style="font-size:12px;color:#666;margin:0 0 10px">Lee la <strong>primera hoja</strong> del Excel (columnas: Ref, Artículo, Cantidad, Px Ud., Importe, Lugar, Pago, Estado, Precio de venta, Trimestre, Fecha). Al importar de nuevo se sustituye todo lo anterior.</p>
+    <div class="upload-zone" style="max-width:260px;padding:20px" onclick="document.getElementById('libroInput').click()">
+      <input type="file" id="libroInput" accept=".xlsx,.xls" onchange="importLibro(this)">
+      <div class="uz-icon">📒</div><p style="font-size:11px">Elegir Excel de Fernando</p>
+    </div>
+    <div id="libroInfo" style="font-size:12px;color:#666;margin-top:8px"></div>
+  </div>
+  <div class="card"><div class="card-title">📊 Resumen por trimestre</div>
+    <div class="table-wrap"><table><thead><tr><th>Trim.</th><th>Artíc.</th><th>Compra</th><th>Venta</th><th>Margen</th><th>IVA REBU</th></tr></thead><tbody id="libroResumen"></tbody></table></div>
+    <p style="font-size:11px;color:#888;margin-top:8px">Margen = precio de venta − compra, solo de filas con precio de venta. IVA REBU = margen / 1,21 × 0,21 (mismo cálculo que el Excel de Fernando). El trimestre es el que anotó Fernando; hay que confirmar si es el de compra o el de venta.</p>
+  </div>
+  <div class="card"><div class="card-title">🟣 Filas incompletas</div>
+    <div id="libroFaltas" style="font-size:13px"></div>
+    <div id="libroLista" style="margin-top:10px"></div>
+    <div class="flex-row mt-2"><button class="btn btn-primary" onclick="exportLibro()">📥 Descargar Excel por trimestres</button></div>
+  </div>
+</div>
+
 <!-- DOCUMENTACIÓN FISCAL -->
 <div id="page-docs" class="hidden">
   <div class="section-banner" style="background:var(--gold-bg);color:var(--gold);border:1px solid #FFE082"><span style="font-size:20px">🗂️</span><div><strong>Documentación fiscal de Fernando</strong> — alta REBU, modelos trimestrales, renta...</div></div>
@@ -465,8 +489,7 @@ input[type=file]{display:none}
     <div class="config-section">
       <h3>APIs</h3>
       <div class="form-row form-row-2">
-        <div><label class="field-label">Anthropic API Key (análisis fotos IA)</label><input type="password" id="cfgAnthropicKey" placeholder="sk-ant-..."/></div>
-        <div><label class="field-label">Google Client ID (Drive)</label><input type="text" id="cfgGoogleClientId" placeholder="285073175598-..."/></div>
+                <div><label class="field-label">Google Client ID (Drive)</label><input type="text" id="cfgGoogleClientId" placeholder="285073175598-..."/></div>
       </div>
       <button class="btn btn-green btn-sm" onclick="initGoogleDrive()">🔄 Reconectar Drive</button>
     </div>
@@ -760,6 +783,85 @@ async function uploadAllDocsToDrive(){
   if(ok)toast(`☁️ ${ok} documento(s) subido(s) a Drive.`);
 }
 
+
+// ===================== LIBRO REGISTRO DE COMPRAS (Excel de Fernando) =====================
+function libroDate(v){
+  if(!v)return '';
+  if(v instanceof Date&&!isNaN(v))return String(v.getDate()).padStart(2,'0')+'/'+String(v.getMonth()+1).padStart(2,'0')+'/'+v.getFullYear();
+  return String(v).trim();
+}
+function libroNum(v){const n=parseFloat(String(v==null?'':v).replace(',','.'));return isNaN(n)?0:n;}
+function libroQ(v){return String(v||'').replace(/_/g,'').replace(/\s/g,'').toUpperCase();}
+async function importLibro(input){
+  const f=input.files[0];if(!f)return;
+  try{
+    const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+    let hi=rows.findIndex(r=>r&&String(r[1]||'').toLowerCase().startsWith('art'));
+    if(hi<0)hi=1;
+    const out=[];
+    for(const r of rows.slice(hi+1)){
+      if(!r||(!r[1]&&!r[5]&&!r[4]))continue;
+      const qty=libroNum(r[3])||1,px=libroNum(r[4]);
+      const cost=libroNum(r[5])||qty*px;
+      const sell=libroNum(r[9]);
+      const st=String(r[8]||'').trim().toUpperCase();
+      const it={ref:String(r[0]||'').trim(),desc:String(r[1]||'').trim(),qty,cost,place:String(r[6]||'').trim(),pay:String(r[7]||'').trim(),status:st,sell,quarter:libroQ(r[13]),buyDate:libroDate(r[14])};
+      it.sold=sell>0;
+      it.statusAssumed=sell>0&&st!=='VENDIDO';
+      it.missing=[];
+      if(!it.ref)it.missing.push('referencia');
+      if(!it.buyDate)it.missing.push('fecha');
+      if(!it.place)it.missing.push('lugar');
+      if(!it.pay)it.missing.push('forma de pago');
+      if(!it.quarter)it.missing.push('trimestre');
+      out.push(it);
+    }
+    state.libroCompras=out;saveState();input.value='';
+    renderLibro();toast(`✅ ${out.length} artículos importados.`);
+  }catch(e){toast('❌ No pude leer el Excel.');}
+}
+function libroGroups(){
+  const g={};
+  (state.libroCompras||[]).forEach(it=>{const k=it.quarter||'SIN ASIGNAR';(g[k]=g[k]||[]).push(it);});
+  return Object.keys(g).sort().map(k=>{
+    const a=g[k];const comp=a.reduce((x,i)=>x+i.cost,0);
+    const sold=a.filter(i=>i.sold);const venta=sold.reduce((x,i)=>x+i.sell,0);
+    const margen=sold.reduce((x,i)=>x+(i.sell-i.cost),0);
+    return{k,items:a,n:a.length,comp,venta,margen,iva:margen/1.21*0.21};
+  });
+}
+function renderLibro(){
+  const L=state.libroCompras||[];
+  const info=document.getElementById('libroInfo');
+  if(!L.length){info.textContent='Aún no has importado nada.';document.getElementById('libroResumen').innerHTML='';document.getElementById('libroFaltas').innerHTML='';document.getElementById('libroLista').innerHTML='';return;}
+  info.textContent=L.length+' artículos importados.';
+  const gs=libroGroups();
+  document.getElementById('libroResumen').innerHTML=gs.map(g=>`<tr><td>${esc(g.k)}</td><td>${g.n}</td><td>${fmt(g.comp)}</td><td>${fmt(g.venta)}</td><td>${fmt(g.margen)}</td><td>${fmt(g.iva)}</td></tr>`).join('')
+   +`<tr class="total-row"><td><strong>TOTAL</strong></td><td><strong>${L.length}</strong></td><td><strong>${fmt(gs.reduce((x,g)=>x+g.comp,0))}</strong></td><td><strong>${fmt(gs.reduce((x,g)=>x+g.venta,0))}</strong></td><td><strong>${fmt(gs.reduce((x,g)=>x+g.margen,0))}</strong></td><td><strong>${fmt(gs.reduce((x,g)=>x+g.iva,0))}</strong></td></tr>`;
+  const cnt=k=>L.filter(i=>i.missing.includes(k)).length;
+  const assumed=L.filter(i=>i.statusAssumed).length;
+  document.getElementById('libroFaltas').innerHTML=`Sin fecha: <strong>${cnt('fecha')}</strong> · Sin referencia: <strong>${cnt('referencia')}</strong> · Sin lugar: <strong>${cnt('lugar')}</strong> · Sin forma de pago: <strong>${cnt('forma de pago')}</strong> · Sin trimestre: <strong>${cnt('trimestre')}</strong><br/>Con precio de venta pero sin marcar VENDIDO (lo he tratado como vendido): <strong>${assumed}</strong>`;
+  const inc=L.filter(i=>i.missing.length);
+  const shown=inc.slice(0,60);
+  document.getElementById('libroLista').innerHTML=shown.map(i=>`<div style="padding:6px 8px;margin-bottom:4px;border-left:4px solid #7B1FA2;background:#F3E5F5;border-radius:6px;font-size:12px"><strong>${esc(i.desc||'(sin nombre)')}</strong> · ${fmt(i.cost)}<br/><span style="color:#6A1B9A">Falta: ${esc(i.missing.join(', '))}</span></div>`).join('')+(inc.length>shown.length?`<p style="font-size:11px;color:#888">Mostrando ${shown.length} de ${inc.length}. El Excel descargado las lleva todas.</p>`:'');
+}
+function exportLibro(){
+  const L=state.libroCompras||[];if(!L.length){toast('⚠️ Importa primero el Excel.');return;}
+  const wb=XLSX.utils.book_new();
+  const head=['Ref. interna','Artículo','Cantidad','Precio compra','Lugar','Forma de pago','Estado','Precio venta','Margen','Trimestre','Fecha compra','Falta'];
+  const row=i=>[i.ref,i.desc,i.qty,i.cost,i.place,i.pay,i.sold?'VENDIDO':'PENDIENTE',i.sold?i.sell:'',i.sold?+(i.sell-i.cost).toFixed(2):'',i.quarter,i.buyDate,i.missing.join(', ')];
+  libroGroups().forEach(g=>{
+    const ws=XLSX.utils.aoa_to_sheet([head,...g.items.map(row),[],['TOTAL','',g.n,+g.comp.toFixed(2),'','','',+g.venta.toFixed(2),+g.margen.toFixed(2),'','','IVA REBU: '+g.iva.toFixed(2)]]);
+    XLSX.utils.book_append_sheet(wb,ws,String(g.k).slice(0,31));
+  });
+  const inc=L.filter(i=>i.missing.length);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([head,...inc.map(row)]),'INCOMPLETAS');
+  XLSX.writeFile(wb,'TWS_LibroCompras_'+new Date().getFullYear()+'.xlsx');
+  toast('📥 Excel descargado.');
+}
+
 // ===================== AI PHOTO ANALYSIS =====================
 async function analyzePhotoWithAI(base64Image){
   try{
@@ -799,6 +901,7 @@ function showTab(tab){
   if(tab==='rebu')renderREBU();
   if(tab==='config')loadConfig();
   if(tab==='docs')initDocsUI();
+  if(tab==='libro')renderLibro();
   if(tab==='photos')renderPhotoGrid();
   if(tab==='cash'){renderCashTable();updatePhotoSelect();}
 }
@@ -916,15 +1019,19 @@ function startCompleteSale(pendingId){
 
 // ===================== CHATBOT — ORDEN: FOTO PRIMERO =====================
 const chatSteps=[
-  {id:'photoRef',q:'📸 Primero, ¿tienes foto del artículo? Selecciónala o sube una nueva.',type:'photo'},
-  {id:'description',q:'👗 Descripción del artículo (la IA la ha sugerido a partir de la foto — puedes editarla):',type:'text'},
-  {id:'saleDate',q:'📅 ¿Fecha de la venta? (DD/MM/AAAA)',type:'date'},
-  {id:'buyPrice',q:'💰 ¿Precio de coste cuando lo adquiriste? (€)',type:'number'},
+  {id:'photoRef',q:'📸 Primero, la foto del artículo. Selecciónala, haz una nueva o sáltala.',type:'photo'},
+  {id:'description',q:'👗 Descripción del artículo (tipo, marca, color y talla):',type:'text'},
+  {id:'buyDate',q:'📅 ¿Fecha de COMPRA del artículo? (DD/MM/AAAA)',type:'text'},
+  {id:'buyPrice',q:'💰 ¿Precio de COMPRA? (€)',type:'number'},
+  {id:'sellerName',q:'👤 ¿A quién se lo compraste? Nombre o Rastro/Vinted (opcional, se puede rellenar después)',type:'text',optional:true},
+  {id:'sellerDNI',q:'🪪 ¿DNI/CIF de quien te lo vendió? (opcional)',type:'text',optional:true},
+  {id:'sellerAddr',q:'🏠 ¿Dirección de quien te lo vendió? (opcional)',type:'text',optional:true},
+  {id:'payMethod',q:'💳 ¿Cómo lo pagaste?',type:'select',opts:['Efectivo','Transferencia','Bizum','Vinted']},
+  {id:'saleDate',q:'📅 ¿Fecha de la VENTA? (DD/MM/AAAA)',type:'date'},
   {id:'sellPrice',q:'💶 ¿Precio de venta? (€)',type:'number'},
   {id:'condition',q:'✅ ¿Estado del artículo?',type:'select',opts:['Buen estado','Muy buen estado','Nuevo sin etiqueta','Nuevo con etiqueta','Estado aceptable']},
   {id:'buyerName',q:'👤 ¿Nombre o usuario del comprador? (opcional)',type:'text',optional:true},
   {id:'buyerDNI',q:'🪪 ¿DNI/NIF del comprador? (opcional)',type:'text',optional:true},
-  {id:'buyerEmail',q:'📧 ¿Email del comprador? (opcional)',type:'text',optional:true},
   {id:'notes',q:'📝 ¿Notas adicionales? (opcional)',type:'text',optional:true},
 ];
 
@@ -981,29 +1088,11 @@ function selectPickerPhoto(ref){
   selectedPickerRef=ref;
   document.getElementById('photoPickerConfirm').disabled=false;
 }
-async function confirmPhotoPicker(){
+function confirmPhotoPicker(){
   closeModal('photoPickerModal');
   const ref=selectedPickerRef||'';
-  // AI Analysis
-  if(ref){
-    const photo=state.photos.find(p=>p.ref===ref);
-    if(photo&&ANTHROPIC_KEY){
-      document.getElementById('aiAnalyzing').style.display='block';
-      const desc=await analyzePhotoWithAI(photo.data);
-      document.getElementById('aiAnalyzing').style.display='none';
-      if(desc){
-        state.chatbot.data.photoRef=ref;
-        state.chatbot.data.description=desc;
-        state.chatbot.step++;// skip photo step
-        state.chatbot.step++;// skip description step (pre-filled)
-        renderChatbot();
-        toast('🤖 IA analizó la foto y sugirió la descripción. Puedes editarla.');
-        return;
-      }
-    }
-  }
-  chatAnswer(ref);
   selectedPickerRef=null;
+  chatAnswer(ref);
 }
 async function addPhotoFromPicker(input){
   const file=input.files[0];if(!file)return;
@@ -1033,7 +1122,7 @@ function finalizeSale(){
   const buyPrice=parseFloat(d.buyPrice)||0,sellPrice=parseFloat(d.sellPrice||d._prefillAmount)||0;
   const ivaRate=parseFloat(state.config.iva)||0.21;
   const margin=sellPrice-buyPrice,ivaBase=margin/(1+ivaRate),iva=ivaBase*ivaRate;
-  const sale={ref,saleDate:d.saleDate,description:d.description,condition:d.condition,buyerName:d.buyerName||'',buyerDNI:d.buyerDNI||'',buyerEmail:d.buyerEmail||'',buyPrice,sellPrice,margin,ivaBase,iva,photoRef:d.photoRef||'',notes:d.notes||'',type:'vinted-in',amount:sellPrice,date:d.saleDate};
+  const sale={ref,saleDate:d.saleDate,buyDate:d.buyDate||'',sellerName:d.sellerName||'',sellerDNI:d.sellerDNI||'',sellerAddr:d.sellerAddr||'',payMethod:d.payMethod||'',description:d.description,condition:d.condition,buyerName:d.buyerName||'',buyerDNI:d.buyerDNI||'',buyerEmail:d.buyerEmail||'',buyPrice,sellPrice,margin,ivaBase,iva,photoRef:d.photoRef||'',notes:d.notes||'',type:'vinted-in',amount:sellPrice,date:d.saleDate};
   state.sales.push(sale);
   if(state.chatbot.pendingId){const p=state.pendingSales.find(x=>x.id===state.chatbot.pendingId);if(p){p.completed=true;p.saleRef=ref;}}
   state.chatbot={step:0,data:{},pendingId:null};
@@ -1064,16 +1153,16 @@ function updatePhotoSelect(){document.getElementById('cashPhoto').innerHTML='<op
 function generateReceiptPDF(s){
   const{jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a6'});
   const cfg=state.config;let y=10;
-  const line=(txt,bold=false,size=9)=>{doc.setFontSize(size);doc.setFont('helvetica',bold?'bold':'normal');doc.text(txt,10,y);y+=size*0.45+1.5;};
+  const line=(txt,bold=false,size=9)=>{doc.setFontSize(size);doc.setFont('helvetica',bold?'bold':'normal');doc.text(String(txt),10,y);y+=size*0.45+1.5;};
   const dline=()=>{doc.setDrawColor(180);doc.line(10,y,95,y);y+=3;};
-  line(cfg.name||'THE WHITE STONES APP',true,11);line('NIF: '+(cfg.nif||'---'));line(cfg.addr||'');line((cfg.city||'Segovia')+(cfg.phone?' · '+cfg.phone:''));dline();
-  line('DOCUMENTO REBU DE COMPRAS',true,10);line('Nº: '+s.ref);line('Fecha: '+(s.saleDate||s.date));if(s.isCash)line('Pago: EFECTIVO');dline();
-  line('COMPRADOR: '+(s.buyerName||'—'));if(s.buyerDNI)line('DNI/NIF: '+s.buyerDNI);if(s.buyerEmail&&s.buyerEmail!=='no')line('Email: '+s.buyerEmail,false,8);dline();
+  const pay=s.payMethod||(s.isCash?'Efectivo':'');
+  line('DOCUMENTO REBU DE COMPRAS',true,11);line('Nº: '+s.ref);line('Fecha de compra: '+(s.buyDate||'pendiente de completar'));if(pay)line('Forma de pago: '+pay);dline();
+  line('COMPRADOR (el negocio):',true);line(cfg.name||'—');line('NIF: '+(cfg.nif||'---'));if(cfg.addr)line(cfg.addr+(cfg.city?', '+cfg.city:''),false,8);dline();
+  line('VENDEDOR (quien te vendió el artículo):',true);line(s.sellerName||'pendiente de completar');line('DNI/CIF: '+(s.sellerDNI||'pendiente de completar'),false,8);line('Dirección: '+(s.sellerAddr||'pendiente de completar'),false,8);dline();
   line('ARTÍCULO:',true);doc.splitTextToSize(s.description||'',80).forEach(dl=>{doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text(dl,12,y);y+=4.5;});
-  line('Estado: '+(s.condition||'—'));if(s.photoRef)line('Ref. foto: '+s.photoRef);dline();
-  line('P. adquisición: '+fmt(s.buyPrice));line('P. venta: '+fmt(s.sellPrice));line('Margen REBU: '+fmt(s.margin),true);line('Base imponible: '+fmt(s.ivaBase));line('IVA s/margen (21%): '+fmt(s.iva));dline();
-  line('TOTAL: '+fmt(s.sellPrice),true,11);dline();
-  line('Régimen Especial Bienes Usados (REBU)',false,7);line('Art. 135-139 Ley 37/1992 LIVA',false,7);line('IVA no deducible por el destinatario.',false,7);
+  if(s.photoRef)line('Ref. foto: '+s.photoRef);dline();
+  line('PRECIO DE COMPRA: '+fmt(s.buyPrice),true,11);dline();
+  line('Régimen Especial de Bienes Usados (REBU)',false,7);line('Art. 135-139 Ley 37/1992 LIVA',false,7);
   return doc;
 }
 
@@ -1084,24 +1173,21 @@ function showReceiptModal(ref){
   document.getElementById('receiptContent').innerHTML=`<div class="receipt">
     <div class="receipt-header"><strong style="font-size:14px">${cfg.name||'THE WHITE STONES APP'}</strong><br/>NIF: ${cfg.nif||'---'}<br/>${cfg.addr||''}<br/>${cfg.city||'Segovia'}${cfg.phone?' · '+cfg.phone:''}<br/><br/><strong>DOCUMENTO REBU DE COMPRAS</strong><br/><small>Art. 135 a 139 Ley 37/1992 LIVA</small></div>
     <div class="receipt-row"><span><strong>Nº:</strong></span><span>${sale.ref}</span></div>
-    <div class="receipt-row"><span><strong>Fecha:</strong></span><span>${sale.saleDate||sale.date}</span></div>
-    ${sale.isCash?'<div class="receipt-row"><span><strong>Pago:</strong></span><span>💶 EFECTIVO</span></div>':''}
+    <div class="receipt-row"><span><strong>Fecha de compra:</strong></span><span>${sale.buyDate||'pendiente de completar'}</span></div>
+    ${(sale.payMethod||sale.isCash)?`<div class="receipt-row"><span><strong>Forma de pago:</strong></span><span>${sale.payMethod||'Efectivo'}</span></div>`:''}
     <hr style="border:none;border-top:1px dashed #ccc;margin:8px 0"/>
-    <div class="receipt-row"><span><strong>COMPRADOR:</strong></span><span>${sale.buyerName||'—'}</span></div>
-    ${sale.buyerDNI?`<div class="receipt-row"><span>DNI/NIF:</span><span>${sale.buyerDNI}</span></div>`:''}
-    ${sale.buyerEmail&&sale.buyerEmail!=='no'?`<div class="receipt-row"><span>Email:</span><span>${sale.buyerEmail}</span></div>`:''}
+    <div class="receipt-row"><span><strong>COMPRADOR:</strong></span><span>${cfg.name||'—'}</span></div>
+    <div class="receipt-row"><span>NIF:</span><span>${cfg.nif||'---'}</span></div>
+    <hr style="border:none;border-top:1px dashed #ccc;margin:8px 0"/>
+    <div class="receipt-row"><span><strong>VENDEDOR:</strong></span><span>${sale.sellerName||'pendiente de completar'}</span></div>
+    <div class="receipt-row"><span>DNI/CIF:</span><span>${sale.sellerDNI||'pendiente de completar'}</span></div>
+    <div class="receipt-row"><span>Dirección:</span><span>${sale.sellerAddr||'pendiente de completar'}</span></div>
     <hr style="border:none;border-top:1px dashed #ccc;margin:8px 0"/>
     <div><strong>ARTÍCULO:</strong></div><div style="margin:4px 0;font-size:11px">${sale.description}</div>
-    <div class="receipt-row"><span>Estado:</span><span>${sale.condition||'—'}</span></div>
     ${sale.photoRef?`<div class="receipt-row"><span>Ref. foto:</span><span>${sale.photoRef}</span></div>`:''}
     <hr style="border:none;border-top:1px dashed #ccc;margin:8px 0"/>
-    <div class="receipt-row"><span>P. adquisición:</span><span>${fmt(sale.buyPrice)}</span></div>
-    <div class="receipt-row"><span>P. venta:</span><span>${fmt(sale.sellPrice)}</span></div>
-    <div class="receipt-row receipt-total"><span>Margen REBU:</span><span>${fmt(sale.margin)}</span></div>
-    <div class="receipt-row"><span>Base imponible:</span><span>${fmt(sale.ivaBase)}</span></div>
-    <div class="receipt-row"><span>IVA s/margen (21%):</span><span>${fmt(sale.iva)}</span></div>
-    <div class="receipt-row receipt-total"><span><strong>TOTAL:</strong></span><span><strong>${fmt(sale.sellPrice)}</strong></span></div>
-    <div class="receipt-footer">Régimen Especial de Bienes Usados (REBU)<br/>El IVA no puede deducirse por el destinatario.<br/>${cfg.cnae?'CNAE: '+cfg.cnae:''} ${cfg.iae?'· IAE: '+cfg.iae:''}</div>
+    <div class="receipt-row receipt-total"><span><strong>PRECIO DE COMPRA:</strong></span><span><strong>${fmt(sale.buyPrice)}</strong></span></div>
+    <div class="receipt-footer">Régimen Especial de Bienes Usados (REBU)<br/>Art. 135 a 139 Ley 37/1992 LIVA</div>
   </div>
   ${photo?`<div style="text-align:center;margin-top:12px"><img src="${photo.data}" style="max-width:200px;border-radius:8px;border:1px solid #ccc"/><div class="text-xs mt-1">${photo.ref}</div></div>`:''}`;
   openModal('receiptModal');
