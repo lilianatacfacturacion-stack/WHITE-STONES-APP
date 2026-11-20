@@ -6,6 +6,7 @@
 <title>THE WHITE STONES APP</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -205,6 +206,7 @@ input[type=file]{display:none}
   <button class="nav-btn" onclick="showTab('cash')" id="tab-cash"><span>💶</span>Efectivo</button>
   <button class="nav-btn" onclick="showTab('photos')" id="tab-photos"><span>📸</span>Fotos</button>
   <button class="nav-btn" onclick="showTab('rebu')" id="tab-rebu"><span>🧾</span>REBU</button>
+  <button class="nav-btn" onclick="showTab('docs')" id="tab-docs"><span>🗂️</span>Docs fiscales</button>
   <button class="nav-btn" onclick="showTab('config')" id="tab-config"><span>⚙️</span>Config</button>
 </div>
 
@@ -381,6 +383,48 @@ input[type=file]{display:none}
 </div>
 
 <!-- CONFIG -->
+<!-- DOCUMENTACIÓN FISCAL -->
+<div id="page-docs" class="hidden">
+  <div class="section-banner" style="background:var(--gold-bg);color:var(--gold);border:1px solid #FFE082"><span style="font-size:20px">🗂️</span><div><strong>Documentación fiscal de Fernando</strong> — alta REBU, modelos trimestrales, renta...</div></div>
+  <div class="card">
+    <div class="card-title">➕ Añadir documento</div>
+    <div class="form-row form-row-2">
+      <div><label class="field-label">Tipo *</label>
+        <select id="docCat">
+          <option value="alta">Alta censal / alta REBU (036/037)</option>
+          <option value="303">IVA trimestral (303)</option>
+          <option value="130">IRPF trimestral (130/131)</option>
+          <option value="390">Resumen anual IVA (390)</option>
+          <option value="renta">Renta (100)</option>
+          <option value="otros">Otros (certificados, requerimientos...)</option>
+        </select></div>
+      <div><label class="field-label">Año *</label><select id="docYear"></select></div>
+    </div>
+    <div class="form-row form-row-2">
+      <div><label class="field-label">Trimestre (si aplica)</label>
+        <select id="docQ"><option value="">—</option><option>1T</option><option>2T</option><option>3T</option><option>4T</option></select></div>
+      <div><label class="field-label">Nota (opcional)</label><input type="text" id="docNote" placeholder="Ej. presentado el 20/10, a ingresar 120 €"/></div>
+    </div>
+    <div class="upload-zone" style="max-width:260px;padding:20px" onclick="document.getElementById('docInput').click()">
+      <input type="file" id="docInput" accept="application/pdf,image/*" multiple onchange="addFiscalDocs(this)">
+      <div class="uz-icon">📄</div><p style="font-size:11px">PDF o foto (puedes elegir varios)</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📚 Documentos guardados</div>
+    <div class="form-row form-row-2">
+      <div><label class="field-label">Filtrar por tipo</label><select id="docFilterCat" onchange="renderDocs()"><option value="">Todos</option><option value="alta">Alta / REBU</option><option value="303">IVA (303)</option><option value="130">IRPF (130/131)</option><option value="390">Resumen IVA (390)</option><option value="renta">Renta</option><option value="otros">Otros</option></select></div>
+      <div><label class="field-label">Filtrar por año</label><select id="docFilterYear" onchange="renderDocs()"></select></div>
+    </div>
+    <div id="docList"></div>
+    <div class="flex-row mt-2">
+      <button class="btn btn-primary" onclick="uploadAllDocsToDrive()">☁️ Subir pendientes a Drive</button>
+    </div>
+    <div class="drive-upload-progress" id="docDriveProgress">☁️ Subiendo documentos a Drive...</div>
+    <p style="font-size:11px;color:#888;margin-top:10px">Los archivos se guardan en este móvil (no se pierden al cerrar la app). En Drive se crea la carpeta <strong>06_Documentacion_Fiscal</strong> sola, en "Mi unidad".</p>
+  </div>
+</div>
+
 <div id="page-config" class="hidden">
   <div class="card">
     <div class="card-title">⚙️ Configuración</div>
@@ -483,11 +527,11 @@ const DRIVE_FOLDERS = {
   excelREBU:'1xO-XNLFwokJpGyzZ6-XIyXI6__VcwznI',
   fotos:'18GuIAd8-1dcbmmudLtFkBAY4d5faUHro'
 };
-const ANTHROPIC_KEY = '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';
+let ANTHROPIC_KEY=(()=>{try{return localStorage.getItem('tws_akey')||'';}catch(e){return '';}})();
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 const state={
-  config:{name:'',nif:'',addr:'',city:'Segovia',phone:'',email:'',iva:0.21,prefix:'TWS',cnae:'4779',iae:'659',sep:';',vintedKw:'VINTED,vinted',bizumKw:'BIZUM,bizum',googleClientId:'285073175598-9t340dbsp6s3nv1g1234567890abcdef.apps.googleusercontent.com'},
+  config:{name:'',nif:'',addr:'',city:'Segovia',phone:'',email:'',iva:0.21,prefix:'TWS',cnae:'4779',iae:'659',sep:';',vintedKw:'VINTED,vinted',bizumKw:'BIZUM,bizum',googleClientId:''},
   movements:[],sales:[],cashSales:[],photos:[],pendingSales:[],
   receiptCounter:1,currentReceipt:null,
   chatbot:{step:0,data:{},pendingId:null},
@@ -523,7 +567,7 @@ if(sessionStorage.getItem('tws_auth')==='1'){
 
 // ===================== GOOGLE DRIVE =====================
 function initGoogleDrive(){
-  const clientId=state.config.googleClientId||'285073175598-9t340dbsp6s3nv1g1234567890abcdef.apps.googleusercontent.com';
+  const clientId=state.config.googleClientId||'';
   if(!clientId||clientId.includes('abcdef')){
     updateDriveStatus(false,'Añade tu Google Client ID en Configuración → APIs');
     return;
@@ -639,6 +683,83 @@ async function uploadReceiptToDrive(){
   await uploadFileToDrive(fileName,'application/pdf',pdfBytes,DRIVE_FOLDERS.recibos,'receiptDriveProgress');
 }
 
+
+// ===================== DOCUMENTACIÓN FISCAL =====================
+const DOC_CATS={alta:'Alta / REBU',303:'IVA (303)',130:'IRPF (130/131)',390:'Resumen IVA (390)',renta:'Renta',otros:'Otros'};
+function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function docsDB(){return new Promise((res,rej)=>{const r=indexedDB.open('tws_docs',1);r.onupgradeneeded=()=>r.result.createObjectStore('files');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function docPut(id,blob){const db=await docsDB();return new Promise((res,rej)=>{const t=db.transaction('files','readwrite');t.objectStore('files').put(blob,id);t.oncomplete=res;t.onerror=()=>rej(t.error);});}
+async function docGet(id){const db=await docsDB();return new Promise((res,rej)=>{const q=db.transaction('files').objectStore('files').get(id);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}
+async function docDel(id){const db=await docsDB();return new Promise((res,rej)=>{const t=db.transaction('files','readwrite');t.objectStore('files').delete(id);t.oncomplete=res;t.onerror=()=>rej(t.error);});}
+function initDocsUI(){
+  if(!state.fiscalDocs)state.fiscalDocs=[];
+  const y=new Date().getFullYear();
+  const opts=[];for(let i=y+1;i>=2025;i--)opts.push(`<option>${i}</option>`);
+  const ys=document.getElementById('docYear');if(!ys.options.length){ys.innerHTML=opts.join('');ys.value=String(y);}
+  const fy=document.getElementById('docFilterYear');if(!fy.options.length){fy.innerHTML='<option value="">Todos</option>'+opts.join('');}
+  renderDocs();
+}
+async function addFiscalDocs(input){
+  if(!state.fiscalDocs)state.fiscalDocs=[];
+  const cat=document.getElementById('docCat').value,year=document.getElementById('docYear').value,q=document.getElementById('docQ').value,note=document.getElementById('docNote').value.trim();
+  const files=[...input.files];let n=0;
+  for(const f of files){
+    const id='d'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+    try{await docPut(id,f);}catch(e){toast('❌ No se pudo guardar '+f.name);continue;}
+    state.fiscalDocs.push({id,cat,year,q,note,name:f.name,type:f.type||'application/octet-stream',size:f.size,date:new Date().toLocaleDateString('es-ES'),drive:false});
+    n++;
+  }
+  saveState();input.value='';document.getElementById('docNote').value='';
+  renderDocs();toast(`✅ ${n} documento(s) guardado(s).`);
+  if(state.driveToken&&n)uploadAllDocsToDrive();
+}
+function docDriveName(d){const base=[d.year,d.q,DOC_CATS[d.cat].replace(/[^A-Za-z0-9ÁÉÍÓÚáéíóúñÑ]+/g,'_')].filter(Boolean).join('_');return base+'__'+d.name;}
+function renderDocs(){
+  const box=document.getElementById('docList');if(!box)return;
+  const fc=document.getElementById('docFilterCat').value,fy=document.getElementById('docFilterYear').value;
+  const list=(state.fiscalDocs||[]).filter(d=>(!fc||d.cat===fc)&&(!fy||d.year===fy)).sort((a,b)=>(b.year+(b.q||'')).localeCompare(a.year+(a.q||'')));
+  if(!list.length){box.innerHTML='<p style="font-size:13px;color:#888">Aún no hay documentos. Sube el primero arriba.</p>';return;}
+  box.innerHTML=list.map(d=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #EAE0D5;flex-wrap:wrap">
+    <div style="min-width:0;flex:1"><div style="font-size:13px;font-weight:600;word-break:break-all">${esc(d.name)}</div>
+    <div style="font-size:11px;color:#777">${esc(DOC_CATS[d.cat])} · ${esc(d.year)}${d.q?' · '+esc(d.q):''} · ${(d.size/1024).toFixed(0)} KB ${d.drive?'· ☁️ en Drive':'· ⏳ solo en el móvil'}</div>
+    ${d.note?`<div style="font-size:11px;color:#555">${esc(d.note)}</div>`:''}</div>
+    <div class="flex-row"><button class="btn btn-outline btn-sm" onclick="openFiscalDoc('${d.id}')">Ver</button><button class="btn btn-outline btn-sm" onclick="deleteFiscalDoc('${d.id}')">🗑️</button></div></div>`).join('');
+}
+async function openFiscalDoc(id){const b=await docGet(id);if(!b){toast('⚠️ Archivo no encontrado.');return;}const u=URL.createObjectURL(b);window.open(u,'_blank');setTimeout(()=>URL.revokeObjectURL(u),60000);}
+async function deleteFiscalDoc(id){if(!confirm('¿Borrar este documento de la app? (Si ya está en Drive, allí se queda.)'))return;await docDel(id);state.fiscalDocs=state.fiscalDocs.filter(d=>d.id!==id);saveState();renderDocs();}
+async function ensureDocsFolder(){
+  if(state.config.docsFolderId)return state.config.docsFolderId;
+  const h={Authorization:'Bearer '+state.driveToken};
+  const name='06_Documentacion_Fiscal';
+  const q=encodeURIComponent(`name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  let r=await fetch('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id)',{headers:h});
+  if(r.ok){const j=await r.json();if(j.files&&j.files.length){state.config.docsFolderId=j.files[0].id;saveState();return j.files[0].id;}}
+  r=await fetch('https://www.googleapis.com/drive/v3/files?fields=id',{method:'POST',headers:{...h,'Content-Type':'application/json'},body:JSON.stringify({name,mimeType:'application/vnd.google-apps.folder'})});
+  if(!r.ok)return null;const j=await r.json();state.config.docsFolderId=j.id;saveState();return j.id;
+}
+async function uploadAllDocsToDrive(){
+  if(!state.driveToken){toast('⚠️ Drive no conectado. Ve a Config → APIs.');return;}
+  const pend=(state.fiscalDocs||[]).filter(d=>!d.drive);
+  if(!pend.length){toast('✅ Todo está ya en Drive.');return;}
+  const prog=document.getElementById('docDriveProgress');prog.style.display='block';
+  let ok=0;
+  try{
+    const folder=await ensureDocsFolder();
+    if(!folder)throw new Error('folder');
+    for(const d of pend){
+      const b=await docGet(d.id);if(!b)continue;
+      const meta={name:docDriveName(d),parents:[folder]};
+      const form=new FormData();
+      form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+      form.append('file',b);
+      const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{method:'POST',headers:{Authorization:'Bearer '+state.driveToken},body:form});
+      if(r.ok){d.drive=true;ok++;}
+    }
+  }catch(e){toast('❌ Error con Drive. Reconecta en Config.');}
+  prog.style.display='none';saveState();renderDocs();
+  if(ok)toast(`☁️ ${ok} documento(s) subido(s) a Drive.`);
+}
+
 // ===================== AI PHOTO ANALYSIS =====================
 async function analyzePhotoWithAI(base64Image){
   try{
@@ -677,6 +798,7 @@ function showTab(tab){
   if(tab==='sales'){renderAllSaleCards();renderSalesTable();if(!state.chatbot.pendingId)initChatbot();}
   if(tab==='rebu')renderREBU();
   if(tab==='config')loadConfig();
+  if(tab==='docs')initDocsUI();
   if(tab==='photos')renderPhotoGrid();
   if(tab==='cash'){renderCashTable();updatePhotoSelect();}
 }
@@ -1043,8 +1165,8 @@ function exportBankExcel(){if(!state.movements.length){toast('⚠️ No hay movi
 function exportREBUExcel(){const all=[...state.sales,...state.cashSales];if(!all.length){toast('⚠️ No hay ventas REBU.');return;}const wb=generateREBUWorkbook();XLSX.writeFile(wb,`TWS_DocumentoREBU_Compras_${new Date().getFullYear()}.xlsx`);toast('📥 Documento REBU descargado.');}
 
 // ===================== CONFIG =====================
-function loadConfig(){const c=state.config;const map={cfgName:'name',cfgNIF:'nif',cfgAddr:'addr',cfgCity:'city',cfgPhone:'phone',cfgEmail:'email',cfgCNAE:'cnae',cfgIAE:'iae',cfgPrefix:'prefix',cfgVintedKw:'vintedKw',cfgBizumKw:'bizumKw',cfgGoogleClientId:'googleClientId'};Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=c[key]||'';});if(document.getElementById('cfgIVA'))document.getElementById('cfgIVA').value=c.iva||0.21;if(document.getElementById('cfgSep'))document.getElementById('cfgSep').value=c.sep||';';if(document.getElementById('cfgAnthropicKey'))document.getElementById('cfgAnthropicKey').value=ANTHROPIC_KEY.substring(0,20)+'...';}
-function saveConfig(){const get=id=>document.getElementById(id)?.value||'';state.config={...state.config,name:get('cfgName'),nif:get('cfgNIF'),addr:get('cfgAddr'),city:get('cfgCity'),phone:get('cfgPhone'),email:get('cfgEmail'),cnae:get('cfgCNAE'),iae:get('cfgIAE'),prefix:get('cfgPrefix')||'TWS',iva:parseFloat(get('cfgIVA'))||0.21,sep:get('cfgSep')||';',vintedKw:get('cfgVintedKw')||'VINTED,vinted',bizumKw:get('cfgBizumKw')||'BIZUM,bizum',googleClientId:get('cfgGoogleClientId')};saveState();toast('✅ Configuración guardada.');}
+function loadConfig(){const c=state.config;const map={cfgName:'name',cfgNIF:'nif',cfgAddr:'addr',cfgCity:'city',cfgPhone:'phone',cfgEmail:'email',cfgCNAE:'cnae',cfgIAE:'iae',cfgPrefix:'prefix',cfgVintedKw:'vintedKw',cfgBizumKw:'bizumKw',cfgGoogleClientId:'googleClientId'};Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=c[key]||'';});if(document.getElementById('cfgIVA'))document.getElementById('cfgIVA').value=c.iva||0.21;if(document.getElementById('cfgSep'))document.getElementById('cfgSep').value=c.sep||';';if(document.getElementById('cfgAnthropicKey'))document.getElementById('cfgAnthropicKey').value=ANTHROPIC_KEY?'(guardada en este móvil)':'';}
+function saveConfig(){const get=id=>document.getElementById(id)?.value||'';state.config={...state.config,name:get('cfgName'),nif:get('cfgNIF'),addr:get('cfgAddr'),city:get('cfgCity'),phone:get('cfgPhone'),email:get('cfgEmail'),cnae:get('cfgCNAE'),iae:get('cfgIAE'),prefix:get('cfgPrefix')||'TWS',iva:parseFloat(get('cfgIVA'))||0.21,sep:get('cfgSep')||';',vintedKw:get('cfgVintedKw')||'VINTED,vinted',bizumKw:get('cfgBizumKw')||'BIZUM,bizum',googleClientId:get('cfgGoogleClientId')};const ak=get('cfgAnthropicKey').trim();if(ak.startsWith('sk-ant')){ANTHROPIC_KEY=ak;try{localStorage.setItem('tws_akey',ak);}catch(e){}}saveState();toast('✅ Configuración guardada.');}
 
 // ===================== INIT =====================
 updatePhotoSelect();
