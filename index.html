@@ -400,6 +400,15 @@ input[type=file]{display:none}
     <div class="table-wrap"><table><thead><tr><th>Trim.</th><th>Artíc.</th><th>Compra</th><th>Venta</th><th>Margen</th><th>IVA REBU</th></tr></thead><tbody id="libroResumen"></tbody></table></div>
     <p style="font-size:11px;color:#888;margin-top:8px">Margen = precio de venta − compra, solo de filas con precio de venta. IVA REBU = margen / 1,21 × 0,21 (mismo cálculo que el Excel de Fernando). El trimestre es el que anotó Fernando; hay que confirmar si es el de compra o el de venta.</p>
   </div>
+  <div class="card"><div class="card-title">📄 Documento REBU de compras</div>
+    <div class="form-row form-row-2">
+      <div><label class="field-label">Trimestre</label><select id="libroQSel" onchange="renderLibroItems()"></select></div>
+      <div><label class="field-label">Buscar artículo</label><input type="text" id="libroSearch" oninput="renderLibroItems()" placeholder="Ej. sudadera"/></div>
+    </div>
+    <div class="flex-row mb-2"><button class="btn btn-primary" onclick="libroQuarterPDF()">📄 PDF de todo el trimestre</button></div>
+    <div id="libroItems"></div>
+    <p style="font-size:11px;color:#888;margin-top:8px">Lo que falta en el Excel sale como "pendiente de completar". El documento no inventa ningún dato.</p>
+  </div>
   <div class="card"><div class="card-title">🟣 Filas incompletas</div>
     <div id="libroFaltas" style="font-size:13px"></div>
     <div id="libroLista" style="margin-top:10px"></div>
@@ -837,6 +846,8 @@ function renderLibro(){
   const info=document.getElementById('libroInfo');
   if(!L.length){info.textContent='Aún no has importado nada.';document.getElementById('libroResumen').innerHTML='';document.getElementById('libroFaltas').innerHTML='';document.getElementById('libroLista').innerHTML='';return;}
   info.textContent=L.length+' artículos importados.';
+  const qs=document.getElementById('libroQSel'),prev=qs.value;qs.innerHTML=libroGroups().map(g=>`<option>${esc(g.k)}</option>`).join('');if(prev)qs.value=prev;
+  renderLibroItems();
   const gs=libroGroups();
   document.getElementById('libroResumen').innerHTML=gs.map(g=>`<tr><td>${esc(g.k)}</td><td>${g.n}</td><td>${fmt(g.comp)}</td><td>${fmt(g.venta)}</td><td>${fmt(g.margen)}</td><td>${fmt(g.iva)}</td></tr>`).join('')
    +`<tr class="total-row"><td><strong>TOTAL</strong></td><td><strong>${L.length}</strong></td><td><strong>${fmt(gs.reduce((x,g)=>x+g.comp,0))}</strong></td><td><strong>${fmt(gs.reduce((x,g)=>x+g.venta,0))}</strong></td><td><strong>${fmt(gs.reduce((x,g)=>x+g.margen,0))}</strong></td><td><strong>${fmt(gs.reduce((x,g)=>x+g.iva,0))}</strong></td></tr>`;
@@ -860,6 +871,54 @@ function exportLibro(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([head,...inc.map(row)]),'INCOMPLETAS');
   XLSX.writeFile(wb,'TWS_LibroCompras_'+new Date().getFullYear()+'.xlsx');
   toast('📥 Excel descargado.');
+}
+
+
+function libroItemsOf(){
+  const q=document.getElementById('libroQSel').value;
+  const t=(document.getElementById('libroSearch').value||'').toLowerCase().trim();
+  return (state.libroCompras||[]).map((it,i)=>({it,i})).filter(o=>(o.it.quarter||'SIN ASIGNAR')===q&&(!t||o.it.desc.toLowerCase().includes(t)));
+}
+function renderLibroItems(){
+  const box=document.getElementById('libroItems');if(!box)return;
+  const list=libroItemsOf();const shown=list.slice(0,40);
+  box.innerHTML=shown.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #EAE0D5"><div style="min-width:0;font-size:12px"><strong style="word-break:break-word">${esc(o.it.desc)}</strong><br/><span style="color:#777">${fmt(o.it.cost)}${o.it.missing.length?' · 🟣 falta: '+esc(o.it.missing.join(', ')):' · ✅ completo'}</span></div><button class="btn btn-outline btn-sm" onclick="libroItemPDF(${o.i})">📄</button></div>`).join('')+(list.length>shown.length?`<p style="font-size:11px;color:#888">Mostrando ${shown.length} de ${list.length}. Usa el buscador, o descarga el PDF del trimestre con todos.</p>`:'')||'<p style="font-size:12px;color:#888">Sin resultados.</p>';
+}
+function libroItemPDF(i){
+  const it=state.libroCompras[i];if(!it)return;
+  const doc=generateReceiptPDF({ref:it.ref||('FILA-'+(i+1)+' (sin referencia)'),buyDate:it.buyDate,payMethod:it.pay,sellerName:it.place,sellerDNI:'',sellerAddr:'',description:it.desc+(it.qty>1?' (x'+it.qty+')':''),buyPrice:it.cost,photoRef:''});
+  doc.save('DocumentoREBU_'+(it.ref||('fila'+(i+1))).replace(/[^A-Za-z0-9_-]+/g,'_')+'.pdf');
+}
+function libroQuarterPDF(){
+  const list=libroItemsOf();
+  const q=document.getElementById('libroQSel').value;
+  if(!list.length){toast('⚠️ No hay artículos.');return;}
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4',orientation:'landscape'});
+  const cfg=state.config;const W=297;
+  const cols=[{t:'Ref.',x:10,w:34},{t:'Fecha compra',x:46,w:24},{t:'Artículo',x:72,w:78},{t:'Vendedor / lugar',x:152,w:50},{t:'DNI/CIF',x:204,w:26},{t:'Pago',x:232,w:26},{t:'P. compra',x:260,w:27}];
+  let y=0,page=0,total=0;
+  const header=()=>{
+    if(page>0)doc.addPage();page++;y=12;
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('DOCUMENTO REBU DE COMPRAS — '+q,10,y);y+=6;
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text((cfg.name||'—')+' · NIF: '+(cfg.nif||'---')+'   Régimen Especial de Bienes Usados (art. 135-139 Ley 37/1992 LIVA)',10,y);y+=7;
+    doc.setFont('helvetica','bold');doc.setFontSize(8);cols.forEach(c=>doc.text(c.t,c.x,y));y+=2;doc.line(10,y,W-10,y);y+=4;
+    doc.setFont('helvetica','normal');
+  };
+  header();
+  const cut=(t,w)=>{const a=doc.splitTextToSize(String(t||''),w);return a[0]+(a.length>1?'…':'');};
+  list.forEach(o=>{
+    const it=o.it;if(y>190){header();}
+    const P='pendiente';
+    const vals=[it.ref||'sin ref.',it.buyDate||P,it.desc+(it.qty>1?' (x'+it.qty+')':''),it.place||P,P,it.pay||P,fmt(it.cost)];
+    vals.forEach((v,k)=>{doc.setFontSize(7.5);if(v===P)doc.setTextColor(150,60,160);else doc.setTextColor(0);doc.text(cut(v,cols[k].w-2),cols[k].x,y);});
+    doc.setTextColor(0);total+=it.cost;y+=5;
+  });
+  if(y>190)header();
+  y+=3;doc.line(10,y,W-10,y);y+=6;doc.setFont('helvetica','bold');doc.setFontSize(10);
+  doc.text(list.length+' artículos · TOTAL COMPRAS: '+fmt(total),10,y);
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(0);
+  doc.text('"pendiente" = dato no incluido en el libro registro de origen.',10,y+6);
+  doc.save('DocumentoREBU_Compras_'+q+'.pdf');
 }
 
 // ===================== AI PHOTO ANALYSIS =====================
