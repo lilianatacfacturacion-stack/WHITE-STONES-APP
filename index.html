@@ -919,7 +919,7 @@ function libroGroups(){
 function renderLibro(){
   const L=state.libroCompras||[];
   const info=document.getElementById('libroInfo');
-  if(!L.length){info.textContent='Aún no has importado nada.';document.getElementById('libroResumen').innerHTML='';document.getElementById('libroFaltas').innerHTML='';document.getElementById('libroLista').innerHTML='';return;}
+  if(!L.length){info.textContent='Aún no has importado nada.';document.getElementById('libroPeriod').innerHTML='<option value="">Primero importa el Excel de Fernando</option>';document.getElementById('libroQSel').innerHTML='';document.getElementById('libroResumen').innerHTML='';document.getElementById('libroFaltas').innerHTML='';document.getElementById('libroLista').innerHTML='';return;}
   info.textContent=L.length+' artículos importados.';
   const qs=document.getElementById('libroQSel'),prev=qs.value;qs.innerHTML=libroGroups().map(g=>`<option>${esc(g.k)}</option>`).join('');if(prev)qs.value=prev;
   renderLibroItems();
