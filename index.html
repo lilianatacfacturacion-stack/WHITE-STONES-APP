@@ -207,6 +207,10 @@ p[style*="font-size:11px"],p[style*="font-size:12px"],div[style*="font-size:11px
 .drive-btn{font-size:14px!important;padding:12px 14px!important}
 label.field-label,.config-section label,.field-label{font-size:14px!important}
 .config-section h3{font-size:15px!important}
+
+.vmiss{border:2px solid #e91e63!important;background:#ffe0ef!important}
+.vtbl{width:100%;border-collapse:collapse;font-size:14px}.vtbl td{padding:3px}.vtbl input{width:100%;box-sizing:border-box;padding:8px;font-size:15px;border:1px solid #ccc;border-radius:6px}
+@media(max-width:700px){.vtbl tr:first-child{display:none}.vtbl tr:not(:first-child){display:block;border:1px solid #ddd;border-radius:8px;padding:6px;margin-bottom:8px}.vtbl td{display:block}}
 </style>
 </head>
 <body>
@@ -319,7 +323,7 @@ label.field-label,.config-section label,.field-label{font-size:14px!important}
 
 <!-- VENTAS VINTED -->
 <div id="page-sales" class="hidden">
-  <div class="flex-row" style="margin-bottom:10px"><button class="btn btn-primary" onclick="showTab('cash')">💶 Ventas en efectivo</button></div>
+  <div class="flex-row" style="margin-bottom:10px"><button class="btn btn-primary" onclick="showTab('cash')">💶 Ventas en efectivo</button><button class="btn btn-outline" onclick="openVinted('venta')">📷 Captura de Vinted</button></div>
   <div class="section-banner banner-sales"><span style="font-size:20px">🛍️</span><div><strong>Ventas Vinted — REBU</strong> · <span style="color:var(--green)">🟢 Completas</span> · <span style="color:var(--purple)">🟣 Pendientes de ficha</span></div></div>
   <div class="card">
     <div class="card-title">📦 Todos los artículos</div>
@@ -421,7 +425,7 @@ label.field-label,.config-section label,.field-label{font-size:14px!important}
 <!-- CONFIG -->
 <!-- LIBRO DE COMPRAS -->
 <div id="page-libro" class="hidden">
-  <div class="flex-row" style="margin-bottom:10px;flex-wrap:wrap"><button class="btn btn-primary" onclick="document.getElementById('newPurchase').scrollIntoView({behavior:'smooth'})">➕ Nueva compra</button><button class="btn btn-outline" onclick="showTab('photos')">📸 Ver fotos</button></div>
+  <div class="flex-row" style="margin-bottom:10px;flex-wrap:wrap"><button class="btn btn-primary" onclick="document.getElementById('newPurchase').scrollIntoView({behavior:'smooth'})">➕ Nueva compra</button><button class="btn btn-outline" onclick="showTab('photos')">📸 Ver fotos</button><button class="btn btn-outline" onclick="openVinted('compra')">📷 Captura de Vinted</button></div>
   <div class="card" id="newPurchase">
     <div class="card-title">➕ Nueva compra (con foto)</div>
     <p style="font-size:14px;color:#7B1FA2;margin:0 0 8px">Todo obligatorio. La foto se guarda con la referencia y se sube a Drive.</p>
@@ -581,6 +585,21 @@ label.field-label,.config-section label,.field-label{font-size:14px!important}
 </div><!-- /app-shell -->
 
 <!-- MODAL VISTA PREVIA DOCUMENTO -->
+<div class="modal-overlay" id="vintedModal">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-title"><span id="vTitle">Captura de Vinted</span><button class="modal-close" onclick="closeModal('vintedModal')">✕</button></div>
+    <div style="max-height:70vh;overflow:auto;padding-right:4px">
+      <p style="font-size:14px;margin:0 0 8px">1) Sube la captura. 2) Revisa lo que ha leído. 3) Guarda. Lo que falta sale en <span style="background:#ffe0ef;border:2px solid #e91e63;padding:0 6px;border-radius:4px"><strong>rosa fuerte</strong></span> y quedará como <strong>pendiente</strong>.</p>
+      <input type="file" id="vFiles" accept="image/*" multiple/>
+      <button class="btn btn-primary mt-2" onclick="vRead()">🔍 Leer capturas</button>
+      <div id="vStatus" style="font-size:14px;margin:6px 0;color:#7B1FA2"></div>
+      <details style="margin:6px 0"><summary style="font-size:14px;cursor:pointer">Texto leído (puedes corregirlo o pegar el tuyo)</summary><textarea id="vText" rows="6" style="width:100%;font-size:13px"></textarea><button class="btn btn-outline btn-sm" onclick="vParse()">Analizar este texto</button></details>
+      <div id="vRows"></div>
+      <button class="btn btn-outline btn-sm" onclick="vAddRow()">➕ Añadir fila</button>
+    </div>
+    <div class="flex-row mt-2"><button class="btn btn-primary" onclick="vSave()">✅ Guardar</button><button class="btn btn-outline" onclick="closeModal('vintedModal')">Cancelar</button></div>
+  </div>
+</div>
 <div class="modal-overlay" id="invoiceModal">
   <div class="modal" style="max-width:560px">
     <div class="modal-title"><span>🧾 Emitir factura</span><button class="modal-close" onclick="closeModal('invoiceModal')">✕</button></div>
@@ -1301,6 +1320,83 @@ async function saveNewPurchase(){
   ['npDesc','npCost','npSeller','npRef'].forEach(i=>document.getElementById(i).value='');document.getElementById('npPhoto').value='';document.getElementById('npPay').value='';
   try{renderLibro();renderPhotoGrid();updatePhotoSelect();}catch(e){}
   toast(msg,7000);
+}
+
+
+// ===================== CAPTURAS VINTED (OCR local) =====================
+const V_NOISE=/pedido|estado|env[ií]o|enviado|total|comprador|vendedor|protecci[oó]n|comisi[oó]n|saldo|valorar|ver |detalles|vinted|entregado|pagado|gastos|tarifa|n[uú]mero|seguimiento|ayuda|mensaje|cancelar|resumen|importe|art[ií]culos?$/i;
+const V_FEE=/env[ií]o|protecci[oó]n|comisi[oó]n|gastos|tarifa|saldo|total/i;
+const V_MES={ene:1,feb:2,mar:3,abr:4,may:5,jun:6,jul:7,ago:8,sep:9,set:9,oct:10,nov:11,dic:12};
+function vDate(l){
+  let m=/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/.exec(l);
+  if(m){let y=m[3].length===2?'20'+m[3]:m[3];return m[1].padStart(2,'0')+'/'+m[2].padStart(2,'0')+'/'+y;}
+  m=/(\d{1,2})\s+(?:de\s+)?(ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)[a-z]*\.?(?:\s+(?:de\s+)?(\d{4}))?/i.exec(l);
+  if(m){const y=m[3]||String(new Date().getFullYear());return m[1].padStart(2,'0')+'/'+String(V_MES[m[2].toLowerCase()]).padStart(2,'0')+'/'+y;}
+  return '';
+}
+function vPrice(l){
+  const m=/(\d{1,5}(?:[.,]\d{2}))\s*(?:€|EUR|eur)|(?:€)\s*(\d{1,5}(?:[.,]\d{2}))/.exec(l);
+  return m?parseFloat((m[1]||m[2]).replace(',','.')):0;
+}
+function parseVintedText(text){
+  const lines=String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const out=[];let last='',cur='',open=[];
+  for(const l of lines){
+    const d=vDate(l);
+    if(d){if(open.length){open.forEach(r=>{if(!r.date)r.date=d;});open=[];cur='';}else cur=d;}
+    const pr=vPrice(l);
+    if(pr>0&&!V_FEE.test(l)){
+      const r={desc:last,amount:pr,date:d||cur,who:''};cur='';out.push(r);if(!r.date)open.push(r);last='';continue;
+    }
+    if(!d&&/[A-Za-zÁÉÍÓÚáéíóúñÑ]{3,}/.test(l)&&l.length>=4&&!V_NOISE.test(l)&&!pr)last=l.replace(/[|_]+/g,' ').trim();
+  }
+  return out;
+}
+let _vKind='compra',_vRows=[];
+function openVinted(kind){_vKind=kind;_vRows=[];document.getElementById('vTitle').textContent=kind==='compra'?'📷 Compras desde captura de Vinted':'📷 Ventas desde captura de Vinted';document.getElementById('vText').value='';document.getElementById('vStatus').textContent='';document.getElementById('vFiles').value='';vRender();openModal('vintedModal');}
+function vRender(){
+  const comp=_vKind==='compra';
+  const h=`<table class="vtbl"><tr><th>Artículo</th><th>Importe €</th><th>Fecha</th>${comp?'<th>Vendedor</th>':''}<th></th></tr>`+_vRows.map((r,i)=>`<tr><td><input data-i="${i}" data-k="desc" value="${esc(r.desc)}" placeholder="Artículo — FALTA"/></td><td><input data-i="${i}" data-k="amount" value="${r.amount||''}" placeholder="Importe € — FALTA"/></td><td><input data-i="${i}" data-k="date" value="${esc(r.date)}" placeholder="Fecha dd/mm/aaaa — FALTA"/></td>${comp?`<td><input data-i="${i}" data-k="who" value="${esc(r.who)}" placeholder="Vendedor — FALTA"/></td>`:''}<td><button class="btn btn-outline btn-sm" onclick="vDel(${i})">🗑️</button></td></tr>`).join('')+'</table>';
+  const box=document.getElementById('vRows');box.innerHTML=_vRows.length?h:'<p style="font-size:14px;color:#888">Aún no hay filas.</p>';
+  box.querySelectorAll('input').forEach(inp=>{const mark=()=>inp.classList.toggle('vmiss',!inp.value.trim());mark();inp.addEventListener('input',()=>{_vRows[+inp.dataset.i][inp.dataset.k]=inp.value;mark();});});
+}
+function vAddRow(){_vRows.push({desc:'',amount:'',date:'',who:''});vRender();}
+function vDel(i){_vRows.splice(i,1);vRender();}
+function vParse(){const r=parseVintedText(document.getElementById('vText').value);_vRows=_vRows.concat(r);vRender();document.getElementById('vStatus').textContent=r.length?`✅ ${r.length} fila(s) detectadas. Revísalas.`:'⚠️ No he detectado importes en ese texto. Añade las filas a mano.';}
+function vLoadScript(src){return new Promise((ok,ko)=>{if(window.Tesseract)return ok();const sc=document.createElement('script');sc.src=src;sc.onload=ok;sc.onerror=()=>ko(new Error('no carga'));document.head.appendChild(sc);});}
+async function vRead(){
+  const files=[...document.getElementById('vFiles').files];const st=document.getElementById('vStatus');
+  if(!files.length){st.textContent='⚠️ Elige primero una o varias capturas.';return;}
+  try{st.textContent='⏳ Cargando el lector de texto (la primera vez tarda)…';await vLoadScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js');}
+  catch(e){st.textContent='❌ No he podido cargar el lector. Revisa la conexión, o pega el texto a mano en "Texto leído".';return;}
+  let all='';
+  for(let i=0;i<files.length;i++){
+    try{const res=await Tesseract.recognize(files[i],'spa',{logger:m=>{if(m.status==='recognizing text')st.textContent=`⏳ Leyendo captura ${i+1} de ${files.length}: ${Math.round(m.progress*100)}%`;}});all+=res.data.text+'\n';}
+    catch(e){st.textContent='❌ Falló la lectura de la captura '+(i+1)+'.';}
+  }
+  document.getElementById('vText').value=all;vParse();
+}
+function vSave(){
+  const rows=_vRows.filter(r=>(r.desc||'').trim()||(parseFloat(String(r.amount).replace(',','.'))||0)>0);
+  if(!rows.length){toast('⚠️ No hay filas que guardar.');return;}
+  let pend=0;
+  if(_vKind==='compra'){
+    state.libroCompras=state.libroCompras||[];
+    rows.forEach(r=>{
+      const amt=parseFloat(String(r.amount).replace(',','.'))||0;const dm=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(r.date||'');
+      const q=dm?Math.ceil(+dm[2]/3)+'T'+dm[3]:'';
+      const n=state.libroCompras.length+state.photos.length+1;const ref=`${state.config.prefix||'TWS'}-${new Date().getFullYear()}-C${String(n).padStart(3,'0')}`;
+      const miss=[];if(!r.desc.trim())miss.push('artículo');if(!dm)miss.push('fecha');if(!(r.who||'').trim())miss.push('vendedor');if(!(amt>0))miss.push('precio de compra');miss.push('foto','DNI y dirección del vendedor');
+      state.libroCompras.push({ref,desc:r.desc.trim()||'(sin artículo)',qty:1,cost:amt,place:'Vinted'+(r.who?' · '+r.who.trim():''),pay:'Vinted (pago en plataforma)',status:'',sell:0,sold:false,statusAssumed:false,quarter:q,buyDate:r.date||'',missing:miss});pend++;
+    });
+    saveState();try{renderLibro();}catch(e){}
+  }else{
+    rows.forEach(r=>{const amt=parseFloat(String(r.amount).replace(',','.'))||0;
+      state.pendingSales.push({id:`PEND-${Date.now()}-${Math.random().toString(36).substr(2,5)}`,date:r.date||'',concept:(r.desc||'').trim()||'(sin artículo) Vinted',amount:amt,type:'vinted-in',completed:false});pend++;});
+    saveState();try{renderAllSaleCards();updateDashboard();}catch(e){}
+  }
+  closeModal('vintedModal');
+  toast(_vKind==='compra'?`✅ ${pend} compra(s) guardadas, marcadas 🟣 pendientes de completar.`:`✅ ${pend} venta(s) guardadas como pendientes (🟣). Complétalas con el asistente.`,7000);
 }
 
 // ===================== LOGO =====================
