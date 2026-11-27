@@ -182,6 +182,16 @@ table{font-size:14.5px}th,td{padding:10px 12px}
 #page-dashboard .drive-status{font-size:15px;padding:14px 16px}
 body.en-inicio .nav{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:16px;overflow:visible;background:var(--cream);border-bottom:none}
 body.en-inicio #tab-dashboard{display:none}
+body.en-inicio,body.en-inicio .app-shell,body.en-inicio .main,body.en-inicio .nav{background:#000!important}
+body.en-inicio .header{background:#111}
+body.en-inicio .nav-btn{color:#fff!important;border-color:rgba(255,255,255,.35)!important;text-shadow:0 1px 3px rgba(0,0,0,.45)}
+body.en-inicio #tab-libro{background:#d32f2f!important}
+body.en-inicio #tab-sales{background:#2e9e4f!important}
+body.en-inicio #tab-bank{background:#f2c200!important;color:#1a1a1a!important;text-shadow:none}
+body.en-inicio #tab-rebu{background:#f57c00!important}
+body.en-inicio #tab-docs{background:#757575!important}
+body.en-inicio .nav-btn:hover{filter:brightness(1.12)}
+#cfgBtn{background:#e0e0e0!important;color:#333!important;border-color:#bdbdbd!important}
 .nav-btn.subtab{display:none!important}
 body.en-inicio .nav-btn{flex-direction:column;justify-content:center;align-items:center;gap:8px;min-height:150px;padding:20px 6px;font-size:clamp(1.15rem,3vw,1.7rem);font-weight:bold;border:5px solid #c4a06a;border-radius:18px;background:#d6d3cd;color:#2b2620;text-align:center;line-height:1.1}
 body.en-inicio .nav-btn span{font-size:clamp(2.2rem,6vw,3rem)}
@@ -231,7 +241,7 @@ label.field-label,.config-section label,.field-label{font-size:14px!important}
     <h1>THE WHITE STONES APP</h1>
     <p>GESTIÓN FISCAL · RÉGIMEN REBU · AUTÓNOMA</p>
   </div>
-  <span class="header-badge" onclick="showTab('config')" style="cursor:pointer;margin-right:6px" title="Configuración y datos fiscales de Fernando">⚙️</span>
+  <span class="header-badge" id="cfgBtn" onclick="showTab('config')" style="cursor:pointer;margin-right:6px" title="Configuración y datos fiscales de Fernando">⚙️</span>
   <span class="header-badge" id="driveStatusBadge" onclick="initGoogleDrive()" style="cursor:pointer" title="Toca para conectar con Google Drive">⏳ Drive</span>
 </div>
 
