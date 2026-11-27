@@ -450,14 +450,7 @@ label.field-label,.config-section label,.field-label{font-size:14px!important}
     <div class="card-title">➕ Añadir documento</div>
     <div class="form-row form-row-2">
       <div><label class="field-label">Tipo *</label>
-        <select id="docCat">
-          <option value="alta">Alta censal / alta REBU (036/037)</option>
-          <option value="303">IVA trimestral (303)</option>
-          <option value="130">IRPF trimestral (130/131)</option>
-          <option value="390">Resumen anual IVA (390)</option>
-          <option value="renta">Renta (100)</option>
-          <option value="otros">Otros (certificados, requerimientos...)</option>
-        </select></div>
+        <select id="docCat"></select></div>
       <div><label class="field-label">Año *</label><select id="docYear"></select></div>
     </div>
     <div class="form-row form-row-2">
@@ -473,7 +466,7 @@ label.field-label,.config-section label,.field-label{font-size:14px!important}
   <div class="card">
     <div class="card-title">📚 Documentos guardados</div>
     <div class="form-row form-row-2">
-      <div><label class="field-label">Filtrar por tipo</label><select id="docFilterCat" onchange="renderDocs()"><option value="">Todos</option><option value="alta">Alta / REBU</option><option value="303">IVA (303)</option><option value="130">IRPF (130/131)</option><option value="390">Resumen IVA (390)</option><option value="renta">Renta</option><option value="otros">Otros</option></select></div>
+      <div><label class="field-label">Filtrar por tipo</label><select id="docFilterCat" onchange="renderDocs()"></select></div>
       <div><label class="field-label">Filtrar por año</label><select id="docFilterYear" onchange="renderDocs()"></select></div>
     </div>
     <div id="docList"></div>
@@ -799,7 +792,9 @@ async function uploadReceiptToDrive(){
 
 
 // ===================== DOCUMENTACIÓN FISCAL =====================
-const DOC_CATS={alta:'Alta / REBU',303:'IVA (303)',130:'IRPF (130/131)',390:'Resumen IVA (390)',renta:'Renta',otros:'Otros'};
+const DOC_CATS={alta:'Altas y censo (036/037, REBU, IAE)',303:'IVA (303)',130:'IRPF (130/131)',390:'Resumen IVA (390)',renta:'Renta',reta:'Seguridad Social (RETA)',banco:'Banco',otros:'Otros'};
+function docCatOptions(sel){return Object.keys(DOC_CATS).map(k=>`<option value="${k}"${k===sel?' selected':''}>${DOC_CATS[k]}</option>`).join('');}
+function changeDocCat(id,v){const d=(state.fiscalDocs||[]).find(x=>x.id===id);if(!d)return;d.cat=v;saveState();renderDocs();toast('✅ Tipo cambiado.');}
 function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function docsDB(){return new Promise((res,rej)=>{const r=indexedDB.open('tws_docs',1);r.onupgradeneeded=()=>r.result.createObjectStore('files');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
 async function docPut(id,blob){const db=await docsDB();return new Promise((res,rej)=>{const t=db.transaction('files','readwrite');t.objectStore('files').put(blob,id);t.oncomplete=res;t.onerror=()=>rej(t.error);});}
@@ -809,6 +804,8 @@ function initDocsUI(){
   if(!state.fiscalDocs)state.fiscalDocs=[];
   const y=new Date().getFullYear();
   const opts=[];for(let i=y+1;i>=2025;i--)opts.push(`<option>${i}</option>`);
+  const dc=document.getElementById('docCat');if(!dc.options.length)dc.innerHTML=docCatOptions('alta');
+  const df=document.getElementById('docFilterCat');if(!df.options.length)df.innerHTML='<option value="">Todos</option>'+docCatOptions('');
   const ys=document.getElementById('docYear');if(!ys.options.length){ys.innerHTML=opts.join('');ys.value=String(y);}
   const fy=document.getElementById('docFilterYear');if(!fy.options.length){fy.innerHTML='<option value="">Todos</option>'+opts.join('');}
   renderDocs();
@@ -827,7 +824,7 @@ async function addFiscalDocs(input){
   renderDocs();toast(`✅ ${n} documento(s) guardado(s).`);
   if(state.driveToken&&n)uploadAllDocsToDrive();
 }
-function docDriveName(d){const base=[d.year,d.q,DOC_CATS[d.cat].replace(/[^A-Za-z0-9ÁÉÍÓÚáéíóúñÑ]+/g,'_')].filter(Boolean).join('_');return base+'__'+d.name;}
+function docDriveName(d){const base=[d.year,d.q,(DOC_CATS[d.cat]||'Otros').replace(/[^A-Za-z0-9ÁÉÍÓÚáéíóúñÑ]+/g,'_')].filter(Boolean).join('_');return base+'__'+d.name;}
 function renderDocs(){
   const box=document.getElementById('docList');if(!box)return;
   const fc=document.getElementById('docFilterCat').value,fy=document.getElementById('docFilterYear').value;
@@ -835,9 +832,9 @@ function renderDocs(){
   if(!list.length){box.innerHTML='<p style="font-size:13px;color:#888">Aún no hay documentos. Sube el primero arriba.</p>';return;}
   box.innerHTML=list.map(d=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #EAE0D5;flex-wrap:wrap">
     <div style="min-width:0;flex:1"><div style="font-size:13px;font-weight:600;word-break:break-all">${esc(d.name)}</div>
-    <div style="font-size:11px;color:#777">${esc(DOC_CATS[d.cat])} · ${esc(d.year)}${d.q?' · '+esc(d.q):''} · ${(d.size/1024).toFixed(0)} KB ${d.drive?'· ☁️ en Drive':'· ⏳ solo en el móvil'}</div>
+    <div style="font-size:11px;color:#777">${esc(DOC_CATS[d.cat]||'Otros')} · ${esc(d.year)}${d.q?' · '+esc(d.q):''} · ${(d.size/1024).toFixed(0)} KB ${d.drive?'· ☁️ en Drive':'· ⏳ solo en el móvil'}</div>
     ${d.note?`<div style="font-size:11px;color:#555">${esc(d.note)}</div>`:''}</div>
-    <div class="flex-row"><button class="btn btn-outline btn-sm" onclick="openFiscalDoc('${d.id}')">Ver</button><button class="btn btn-outline btn-sm" onclick="deleteFiscalDoc('${d.id}')">🗑️</button></div></div>`).join('');
+    <div class="flex-row"><select onchange="changeDocCat('${d.id}',this.value)" style="max-width:190px;min-height:40px;font-size:14px" aria-label="Cambiar tipo">${docCatOptions(d.cat)}</select><button class="btn btn-outline btn-sm" onclick="openFiscalDoc('${d.id}')">Ver</button><button class="btn btn-outline btn-sm" onclick="deleteFiscalDoc('${d.id}')">🗑️</button></div></div>`).join('');
 }
 async function openFiscalDoc(id){const b=await docGet(id);if(!b){toast('⚠️ Archivo no encontrado.');return;}const u=URL.createObjectURL(b);window.open(u,'_blank');setTimeout(()=>URL.revokeObjectURL(u),60000);}
 async function deleteFiscalDoc(id){if(!confirm('¿Borrar este documento de la app? (Si ya está en Drive, allí se queda.)'))return;await docDel(id);state.fiscalDocs=state.fiscalDocs.filter(d=>d.id!==id);saveState();renderDocs();}
