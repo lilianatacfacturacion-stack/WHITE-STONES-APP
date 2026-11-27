@@ -162,6 +162,31 @@ input[type=file]{display:none}
 .legend-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
 .dot-green{background:var(--green)}
 .dot-purple{background:var(--purple)}
+
+/* ===== Tamaño cómodo en móvil + inicio con teclas grandes ===== */
+html{-webkit-text-size-adjust:100%}
+body{font-size:16px}
+.main{padding:14px}
+.card{padding:16px}
+.card-title{font-size:18px}
+.btn{font-size:15px;padding:12px 18px;min-height:46px}
+.btn-sm{font-size:14px;padding:9px 14px;min-height:40px}
+input[type=text],input[type=number],input[type=date],input[type=email],input[type=password],select,textarea{font-size:16px;padding:11px 12px;min-height:46px}
+label.field-label{font-size:14px}
+table{font-size:14.5px}th,td{padding:10px 12px}
+.section-banner{font-size:15px}
+.nav-btn{font-size:15px;padding:14px 16px}
+.header-title h1{font-size:19px}
+.summary-box .sb-val{font-size:22px}.summary-box .sb-lbl{font-size:12px}
+.header-badge{font-size:12px;padding:6px 12px}
+#page-dashboard .drive-status{font-size:15px;padding:14px 16px}
+body.en-inicio .nav{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:16px;overflow:visible;background:var(--cream);border-bottom:none}
+body.en-inicio #tab-dashboard{display:none}
+body.en-inicio .nav-btn{flex-direction:column;justify-content:center;align-items:center;gap:8px;min-height:150px;padding:20px 6px;font-size:clamp(1.15rem,3vw,1.7rem);font-weight:bold;border:5px solid #c4a06a;border-radius:18px;background:#d6d3cd;color:#2b2620;text-align:center;line-height:1.1}
+body.en-inicio .nav-btn span{font-size:clamp(2.2rem,6vw,3rem)}
+body.en-inicio .nav-btn:hover{background:#cac6bf;border-color:#a8844d}
+@media(max-width:700px){body.en-inicio .nav{grid-template-columns:repeat(2,1fr);gap:10px;padding:12px}body.en-inicio .nav-btn{min-height:130px;font-size:clamp(1.2rem,6vw,1.6rem)}}
+@media(max-width:600px){.form-row-2,.form-row-3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -200,7 +225,7 @@ input[type=file]{display:none}
 </div>
 
 <div class="nav">
-  <button class="nav-btn active" onclick="showTab('dashboard')" id="tab-dashboard"><span>📊</span>Dashboard</button>
+  <button class="nav-btn active" onclick="showTab('dashboard')" id="tab-dashboard"><span>🏠</span>Inicio</button>
   <button class="nav-btn" onclick="showTab('bank')" id="tab-bank"><span>🏦</span>Extracto</button>
   <button class="nav-btn" onclick="showTab('sales')" id="tab-sales"><span>🛍️</span>Ventas Vinted</button>
   <button class="nav-btn" onclick="showTab('cash')" id="tab-cash"><span>💶</span>Efectivo</button>
@@ -218,6 +243,10 @@ input[type=file]{display:none}
   <div class="drive-status" id="driveStatusBanner">
     ☁️ <div id="driveStatusText">Conectando con Google Drive...</div>
   </div>
+</div>
+
+<!-- BANCO -->
+<div id="page-bank" class="hidden">
   <div class="summary-grid">
     <div class="summary-box sb-green"><div class="sb-val" id="ds-ingresos">€0,00</div><div class="sb-lbl">INGRESOS</div></div>
     <div class="summary-box sb-red"><div class="sb-val" id="ds-gastos">€0,00</div><div class="sb-lbl">GASTOS</div></div>
@@ -230,25 +259,6 @@ input[type=file]{display:none}
     <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Importe</th><th>Tipo</th></tr></thead>
     <tbody id="recent-movements"><tr class="neutral"><td colspan="4" style="text-align:center;padding:18px;color:var(--ink3)">Sin movimientos.</td></tr></tbody></table></div>
   </div>
-  <div class="card">
-    <div class="card-title">☁️ Carpetas de Drive</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
-      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📁 Extractos Bancarios</a>
-      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">🧾 Recibos REBU</a>
-      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📊 Excel Mensual</a>
-      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📑 Excel REBU</a>
-      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📸 Fotos</a>
-    </div>
-  </div>
-  <div class="flex-row mt-2">
-    <button class="btn btn-primary" onclick="showTab('bank')">📥 Importar extracto</button>
-    <button class="btn btn-green" onclick="showTab('sales')">🛍️ Nueva venta</button>
-    <button class="btn btn-gold" onclick="showTab('cash')">💶 Efectivo</button>
-  </div>
-</div>
-
-<!-- BANCO -->
-<div id="page-bank" class="hidden">
   <div class="section-banner banner-bank"><span style="font-size:20px">🏦</span><div><strong>Extracto Bancario</strong> — Las ventas Vinted y Bizum detectadas aparecerán automáticamente como pendientes en Ventas Vinted.</div></div>
   <div class="card">
     <div class="card-title">📥 Importar extracto</div>
@@ -405,7 +415,7 @@ input[type=file]{display:none}
       <div><label class="field-label">Trimestre</label><select id="libroQSel" onchange="renderLibroItems()"></select></div>
       <div><label class="field-label">Buscar artículo</label><input type="text" id="libroSearch" oninput="renderLibroItems()" placeholder="Ej. sudadera"/></div>
     </div>
-    <div class="flex-row mb-2"><button class="btn btn-primary" onclick="libroQuarterPDF()">📄 PDF de todo el trimestre</button></div>
+    <div class="flex-row mb-2"><button class="btn btn-primary" onclick="libroQuarterView()">👁️ Ver documento del trimestre</button></div>
     <div id="libroItems"></div>
     <p style="font-size:11px;color:#888;margin-top:8px">Lo que falta en el Excel sale como "pendiente de completar". El documento no inventa ningún dato.</p>
   </div>
@@ -459,6 +469,16 @@ input[type=file]{display:none}
 </div>
 
 <div id="page-config" class="hidden">
+  <div class="card">
+    <div class="card-title">☁️ Carpetas de Drive</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📁 Extractos Bancarios</a>
+      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">🧾 Recibos REBU</a>
+      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📊 Excel Mensual</a>
+      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📑 Excel REBU</a>
+      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📸 Fotos</a>
+    </div>
+  </div>
   <div class="card">
     <div class="card-title">⚙️ Configuración</div>
     <div class="config-section">
@@ -518,6 +538,18 @@ input[type=file]{display:none}
 
 </div><!-- /main -->
 </div><!-- /app-shell -->
+
+<!-- MODAL VISTA PREVIA DOCUMENTO -->
+<div class="modal-overlay" id="docPreviewModal">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-title"><span id="docPreviewTitle">Documento</span><button class="modal-close" onclick="closeModal('docPreviewModal')">✕</button></div>
+    <div id="docPreviewBody" style="max-height:65vh;overflow:auto"></div>
+    <div class="flex-row mt-2">
+      <button class="btn btn-primary" onclick="docPreviewDownload()">📥 Descargar PDF</button>
+      <button class="btn btn-outline" onclick="closeModal('docPreviewModal')">Cerrar</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL RECIBO -->
 <div class="modal-overlay" id="receiptModal">
@@ -857,6 +889,7 @@ async function importLibro(input){
       if(!it.place)it.missing.push('lugar');
       if(!it.pay)it.missing.push('forma de pago');
       if(!it.quarter)it.missing.push('trimestre');
+      if(it.sold&&!it.cost)it.missing.push('precio de compra');
       out.push(it);
     }
     state.libroCompras=out;saveState();input.value='';
@@ -914,12 +947,43 @@ function libroItemsOf(){
 function renderLibroItems(){
   const box=document.getElementById('libroItems');if(!box)return;
   const list=libroItemsOf();const shown=list.slice(0,40);
-  box.innerHTML=shown.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #EAE0D5"><div style="min-width:0;font-size:12px"><strong style="word-break:break-word">${esc(o.it.desc)}</strong><br/><span style="color:#777">${fmt(o.it.cost)}${o.it.missing.length?' · 🟣 falta: '+esc(o.it.missing.join(', ')):' · ✅ completo'}</span></div><button class="btn btn-outline btn-sm" onclick="libroItemPDF(${o.i})">📄</button></div>`).join('')+(list.length>shown.length?`<p style="font-size:11px;color:#888">Mostrando ${shown.length} de ${list.length}. Usa el buscador, o descarga el PDF del trimestre con todos.</p>`:'')||'<p style="font-size:12px;color:#888">Sin resultados.</p>';
+  box.innerHTML=shown.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #EAE0D5"><div style="min-width:0;font-size:12px"><strong style="word-break:break-word">${esc(o.it.desc)}</strong><br/><span style="color:#777">${fmt(o.it.cost)}${o.it.missing.length?' · 🟣 falta: '+esc(o.it.missing.join(', ')):' · ✅ completo'}</span></div><button class="btn btn-outline btn-sm" onclick="libroItemPDF(${o.i})">👁️ Ver</button></div>`).join('')+(list.length>shown.length?`<p style="font-size:11px;color:#888">Mostrando ${shown.length} de ${list.length}. Usa el buscador, o descarga el PDF del trimestre con todos.</p>`:'')||'<p style="font-size:12px;color:#888">Sin resultados.</p>';
 }
+let _docDL=null;
+function docPreviewDownload(){if(_docDL)_docDL();}
+function itemToSale(it,i){return{ref:it.ref||('FILA-'+(i+1)+' (sin referencia)'),buyDate:it.buyDate,payMethod:it.pay,sellerName:it.place,sellerDNI:'',sellerAddr:'',description:it.desc+(it.qty>1?' (x'+it.qty+')':''),buyPrice:it.cost,photoRef:''};}
 function libroItemPDF(i){
   const it=state.libroCompras[i];if(!it)return;
-  const doc=generateReceiptPDF({ref:it.ref||('FILA-'+(i+1)+' (sin referencia)'),buyDate:it.buyDate,payMethod:it.pay,sellerName:it.place,sellerDNI:'',sellerAddr:'',description:it.desc+(it.qty>1?' (x'+it.qty+')':''),buyPrice:it.cost,photoRef:''});
-  doc.save('DocumentoREBU_'+(it.ref||('fila'+(i+1))).replace(/[^A-Za-z0-9_-]+/g,'_')+'.pdf');
+  const sale=itemToSale(it,i);const cfg=state.config;const P='<span style="color:#7B1FA2">pendiente de completar</span>';
+  document.getElementById('docPreviewTitle').textContent='Documento REBU de compras';
+  document.getElementById('docPreviewBody').innerHTML=`<div class="receipt">
+    <div class="receipt-header"><strong style="font-size:16px">DOCUMENTO REBU DE COMPRAS</strong><br/><small>Art. 135 a 139 Ley 37/1992 LIVA</small></div>
+    <div class="receipt-row"><span><strong>Nº:</strong></span><span>${esc(sale.ref)}</span></div>
+    <div class="receipt-row"><span><strong>Fecha de compra:</strong></span><span>${sale.buyDate?esc(sale.buyDate):P}</span></div>
+    <div class="receipt-row"><span><strong>Forma de pago:</strong></span><span>${sale.payMethod?esc(sale.payMethod):P}</span></div>
+    <hr style="border:none;border-top:1px dashed #ccc;margin:8px 0"/>
+    <div class="receipt-row"><span><strong>COMPRADOR:</strong></span><span>${esc(cfg.name||'—')}</span></div>
+    <div class="receipt-row"><span>NIF:</span><span>${esc(cfg.nif||'---')}</span></div>
+    <hr style="border:none;border-top:1px dashed #ccc;margin:8px 0"/>
+    <div class="receipt-row"><span><strong>VENDEDOR:</strong></span><span>${sale.sellerName?esc(sale.sellerName):P}</span></div>
+    <div class="receipt-row"><span>DNI/CIF:</span><span>${P}</span></div>
+    <div class="receipt-row"><span>Dirección:</span><span>${P}</span></div>
+    <hr style="border:none;border-top:1px dashed #ccc;margin:8px 0"/>
+    <div><strong>ARTÍCULO:</strong></div><div style="margin:4px 0">${esc(sale.description)}</div>
+    <hr style="border:none;border-top:1px dashed #ccc;margin:8px 0"/>
+    <div class="receipt-row receipt-total"><span><strong>PRECIO DE COMPRA:</strong></span><span><strong>${fmt(sale.buyPrice)}</strong></span></div>
+  </div>`;
+  _docDL=()=>{generateReceiptPDF(sale).save('DocumentoREBU_'+(it.ref||('fila'+(i+1))).replace(/[^A-Za-z0-9_-]+/g,'_')+'.pdf');};
+  openModal('docPreviewModal');
+}
+function libroQuarterView(){
+  const list=libroItemsOf();const q=document.getElementById('libroQSel').value;
+  if(!list.length){toast('⚠️ No hay artículos.');return;}
+  const P='<span style="color:#7B1FA2">pendiente</span>';let tot=0;
+  const rows=list.map(o=>{const it=o.it;tot+=it.cost;return `<tr><td>${esc(it.ref||'sin ref.')}</td><td>${it.buyDate?esc(it.buyDate):P}</td><td>${esc(it.desc)}${it.qty>1?' (x'+it.qty+')':''}</td><td>${it.place?esc(it.place):P}</td><td>${P}</td><td>${it.pay?esc(it.pay):P}</td><td style="text-align:right">${fmt(it.cost)}</td></tr>`;}).join('');
+  document.getElementById('docPreviewTitle').textContent='Documento REBU de compras — '+q;
+  document.getElementById('docPreviewBody').innerHTML=`<div class="table-wrap"><table><thead><tr><th>Ref.</th><th>Fecha</th><th>Artículo</th><th>Vendedor</th><th>DNI/CIF</th><th>Pago</th><th>P. compra</th></tr></thead><tbody>${rows}<tr class="total-row"><td colspan="6">${list.length} artículos · TOTAL COMPRAS</td><td style="text-align:right">${fmt(tot)}</td></tr></tbody></table></div>`;
+  _docDL=libroQuarterPDF;openModal('docPreviewModal');
 }
 function libroQuarterPDF(){
   const list=libroItemsOf();
@@ -992,6 +1056,7 @@ function showTab(tab){
   if(tab==='rebu')renderREBU();
   if(tab==='config')loadConfig();
   if(tab==='docs')initDocsUI();
+  if(tab==='bank')updateDashboard();
   if(tab==='libro')renderLibro();
   if(tab==='photos')renderPhotoGrid();
   if(tab==='cash'){renderCashTable();updatePhotoSelect();}
