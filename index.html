@@ -1491,7 +1491,24 @@ function clearCashForm(){['cashDate','cashRef','cashDesc','cashBuy','cashSell','
 function renderCashTable(){const tb=document.getElementById('cashTable');if(!state.cashSales.length){tb.innerHTML='<tr class="neutral"><td colspan="8" style="text-align:center;padding:14px;color:var(--ink3)">Sin ventas.</td></tr>';return;}tb.innerHTML=state.cashSales.map(s=>`<tr class="cash-in"><td><code style="font-size:11px">${s.ref}</code></td><td>${s.saleDate}</td><td>${s.description}</td><td>${fmt(s.buyPrice)}</td><td><strong>${fmt(s.sellPrice)}</strong></td><td>${fmt(s.margin)}</td><td><span class="status-pill pill-gold">EFECTIVO</span></td><td><button class="btn btn-outline btn-sm" onclick="showReceiptModal('${s.ref}')">🧾</button> ${invBtn('S:'+s.ref)}</td></tr>`).join('');}
 
 // ===================== PHOTOS =====================
-function addPhoto(input){const files=[...input.files];if(!files.length)return;const multi=files.length>1;files.forEach((file,fi)=>{const ref=(!multi&&document.getElementById('photoRef').value.trim())||`${state.config.prefix||'TWS'}-${new Date().getFullYear()}-F${String(state.photos.length+1+fi).padStart(3,'0')}`;const desc=document.getElementById('photoDesc').value.trim()||'Artículo';const r=new FileReader();r.onload=async e=>{state.photos.push({ref,desc,data:e.target.result,date:new Date().toLocaleDateString('es-ES')});saveState();renderPhotoGrid();updatePhotoSelect();toast(`📸 Foto guardada: ${ref}`);document.getElementById('photoRef').value='';document.getElementById('photoDesc').value='';if(state.driveToken){await uploadImageToDrive(ref+'.jpg',e.target.result,DRIVE_FOLDERS.fotos);toast(`☁️ Foto ${ref} subida a Drive.`);}};r.readAsDataURL(file);});input.value='';}
+function imgResize(dataUrl,max,q){return new Promise(res=>{const im=new Image();im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',q));};im.onerror=()=>res(dataUrl);im.src=dataUrl;});}
+const readURL=f=>new Promise(r=>{const x=new FileReader();x.onload=e=>r(e.target.result);x.readAsDataURL(f);});
+async function addPhoto(input){
+  const files=[...input.files];if(!files.length)return;const multi=files.length>1;let ok=0,up=0,dup=0;
+  for(let fi=0;fi<files.length;fi++){
+    const file=files[fi];
+    const ref=(multi?file.name.replace(/\.[^.]+$/,''):document.getElementById('photoRef').value.trim()||file.name.replace(/\.[^.]+$/,''))||`${state.config.prefix||'TWS'}-${new Date().getFullYear()}-F${String(state.photos.length+1).padStart(3,'0')}`;
+    if(state.photos.some(p=>p.ref===ref)){dup++;continue;}
+    toast(`📸 Procesando ${fi+1} de ${files.length}…`,60000);
+    const raw=await readURL(file);const thumb=await imgResize(raw,520,0.7);
+    state.photos.push({ref,desc:(multi?'':document.getElementById('photoDesc').value.trim())||'Artículo',data:thumb,date:new Date().toLocaleDateString('es-ES')});ok++;
+    try{saveState();}catch(e){}
+    if(state.driveToken){try{const big=await imgResize(raw,1600,0.85);await uploadImageToDrive(ref+'.jpg',big,DRIVE_FOLDERS.fotos);up++;}catch(e){}}
+  }
+  document.getElementById('photoRef').value='';document.getElementById('photoDesc').value='';input.value='';
+  renderPhotoGrid();updatePhotoSelect();
+  toast(`✅ ${ok} foto(s) guardadas${state.driveToken?`, ${up} subidas a Drive`:' (Drive sin conectar: no se han subido)'}${dup?`, ${dup} repetidas omitidas`:''}.`,7000);
+}
 function renderPhotoGrid(){document.getElementById('photoGrid').innerHTML=state.photos.map(p=>`<div class="photo-thumb"><img src="${p.data}" alt="${p.desc}"/><div class="photo-ref">${p.ref}</div><button class="btn btn-outline btn-sm" style="width:100%;margin-top:4px" onclick="deletePhoto(${state.photos.indexOf(p)})">🗑️ Borrar</button></div>`).join('')+`<div class="photo-add" onclick="document.getElementById('photoInput').click()">+</div>`;}
 function deletePhoto(i){const p=state.photos[i];if(!p)return;if(!confirm('¿Borrar la foto '+p.ref+' de la app? (Si ya está en Drive, bórrala también allí.)'))return;state.photos.splice(i,1);saveState();renderPhotoGrid();updatePhotoSelect();toast('🗑️ Foto borrada.');}
 function updatePhotoSelect(){document.getElementById('cashPhoto').innerHTML='<option value="">Sin foto</option>'+state.photos.map(p=>`<option value="${p.ref}">${p.ref} — ${p.desc}</option>`).join('');}
