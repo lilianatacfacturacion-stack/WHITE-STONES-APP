@@ -196,7 +196,7 @@ input[type=file]{display:none}
     <h1>THE WHITE STONES APP</h1>
     <p>GESTIÓN FISCAL · RÉGIMEN REBU · AUTÓNOMA</p>
   </div>
-  <span class="header-badge" id="driveStatusBadge">⏳ Drive</span>
+  <span class="header-badge" id="driveStatusBadge" onclick="initGoogleDrive()" style="cursor:pointer" title="Toca para conectar con Google Drive">⏳ Drive</span>
 </div>
 
 <div class="nav">
@@ -233,11 +233,11 @@ input[type=file]{display:none}
   <div class="card">
     <div class="card-title">☁️ Carpetas de Drive</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
-      <a class="drive-btn" href="https://drive.google.com/drive/folders/1_PLpYseG2D9FxUqM_7k3ikhPnKbovFiA" target="_blank">📁 Extractos Bancarios</a>
-      <a class="drive-btn" href="https://drive.google.com/drive/folders/1wtfDIPbtZYcRvvoj0Rc-PrfyGQBHGmqh" target="_blank">🧾 Recibos REBU</a>
-      <a class="drive-btn" href="https://drive.google.com/drive/folders/1SlODHvZfKRoGaJiJA4YwNzsUq90xAvyu" target="_blank">📊 Excel Mensual</a>
-      <a class="drive-btn" href="https://drive.google.com/drive/folders/1xO-XNLFwokJpGyzZ6-XIyXI6__VcwznI" target="_blank">📑 Excel REBU</a>
-      <a class="drive-btn" href="https://drive.google.com/drive/folders/18GuIAd8-1dcbmmudLtFkBAY4d5faUHro" target="_blank">📸 Fotos</a>
+      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📁 Extractos Bancarios</a>
+      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">🧾 Recibos REBU</a>
+      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📊 Excel Mensual</a>
+      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📑 Excel REBU</a>
+      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📸 Fotos</a>
     </div>
   </div>
   <div class="flex-row mt-2">
@@ -361,7 +361,7 @@ input[type=file]{display:none}
     <div class="photo-grid" id="photoGrid"><div class="photo-add" onclick="document.getElementById('photoInput').click()">+</div></div>
     <div class="flex-row mt-2">
       <button class="btn btn-primary" onclick="uploadAllPhotosToDrive()">☁️ Subir todas a Drive</button>
-      <a class="drive-btn" href="https://drive.google.com/drive/folders/18GuIAd8-1dcbmmudLtFkBAY4d5faUHro" target="_blank">📁 Abrir carpeta Drive</a>
+      <a class="drive-btn" href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank">📁 Abrir carpeta Drive</a>
     </div>
     <div class="drive-upload-progress" id="photoDriveProgress">☁️ Subiendo fotos a Drive...</div>
   </div>
@@ -505,11 +505,11 @@ input[type=file]{display:none}
     <div class="config-section">
       <h3>☁️ Carpetas de Drive</h3>
       <div style="display:grid;gap:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 01_Extractos_Bancarios</span><a href="https://drive.google.com/drive/folders/1_PLpYseG2D9FxUqM_7k3ikhPnKbovFiA" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 02_Recibos_REBU</span><a href="https://drive.google.com/drive/folders/1wtfDIPbtZYcRvvoj0Rc-PrfyGQBHGmqh" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 03_Excel_Mensual</span><a href="https://drive.google.com/drive/folders/1SlODHvZfKRoGaJiJA4YwNzsUq90xAvyu" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 04_Excel_REBU</span><a href="https://drive.google.com/drive/folders/1xO-XNLFwokJpGyzZ6-XIyXI6__VcwznI" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 05_Fotos_Productos</span><a href="https://drive.google.com/drive/folders/18GuIAd8-1dcbmmudLtFkBAY4d5faUHro" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 01_Extractos_Bancarios</span><a href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 02_Recibos_REBU</span><a href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 03_Excel_Mensual</span><a href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 04_Excel_REBU</span><a href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border-radius:8px;font-size:13px"><span>📁 05_Fotos_Productos</span><a href="https://drive.google.com/drive/search?q=THE%20WHITE%20STONES%20APP" target="_blank" style="color:var(--green);font-size:11px">Abrir →</a></div>
       </div>
     </div>
     <button class="btn btn-primary" onclick="saveConfig()">💾 Guardar configuración</button>
@@ -559,6 +559,7 @@ const DRIVE_FOLDERS = {
   excelREBU:'1xO-XNLFwokJpGyzZ6-XIyXI6__VcwznI',
   fotos:'18GuIAd8-1dcbmmudLtFkBAY4d5faUHro'
 };
+const DEFAULT_GOOGLE_CLIENT_ID='723613348565-43j38iai4f81nstpkekght3afa6ekjak.apps.googleusercontent.com';
 let ANTHROPIC_KEY=(()=>{try{return localStorage.getItem('tws_akey')||'';}catch(e){return '';}})();
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -599,16 +600,18 @@ if(sessionStorage.getItem('tws_auth')==='1'){
 
 // ===================== GOOGLE DRIVE =====================
 function initGoogleDrive(){
-  const clientId=state.config.googleClientId||'';
+  const clientId=(state.config.googleClientId||'').trim()||DEFAULT_GOOGLE_CLIENT_ID;
   if(!clientId||clientId.includes('abcdef')){
     updateDriveStatus(false,'Añade tu Google Client ID en Configuración → APIs');
     return;
   }
+  if(typeof google==='undefined'||!google.accounts){updateDriveStatus(false,'No cargó el script de Google. Recarga la página.');toast('⚠️ Recarga la página y toca ⚠️ Drive.');return;}
   try{
     const client=google.accounts.oauth2.initTokenClient({
       client_id:clientId,
       scope:'https://www.googleapis.com/auth/drive.file',
       callback:(resp)=>{
+        if(resp.error){updateDriveStatus(false,'Google no dejó conectar: '+resp.error);toast('❌ Drive: '+resp.error);return;}
         if(resp.access_token){
           state.driveToken=resp.access_token;
           updateDriveStatus(true,'Google Drive conectado ✅');
@@ -630,11 +633,40 @@ function updateDriveStatus(ok,msg){
   document.getElementById('driveStatusBadge').textContent=ok?'✅ Drive':'⚠️ Drive';
 }
 
+
+// Con el permiso drive.file, la app solo puede escribir en carpetas que ella misma crea.
+// Por eso crea (una vez) su propio árbol "THE WHITE STONES APP" en Mi unidad.
+const FOLDER_NAMES={};
+FOLDER_NAMES[DRIVE_FOLDERS.bank]='01_Extractos_Bancarios';
+FOLDER_NAMES[DRIVE_FOLDERS.recibos]='02_Documentos_REBU_Compras';
+FOLDER_NAMES[DRIVE_FOLDERS.excelMensual]='03_Excel_Mensual';
+FOLDER_NAMES[DRIVE_FOLDERS.excelREBU]='04_Excel_REBU';
+FOLDER_NAMES[DRIVE_FOLDERS.fotos]='05_Fotos_Productos';
+async function driveEnsure(name,parentId){
+  const h={Authorization:'Bearer '+state.driveToken};
+  const q=encodeURIComponent(`name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`+(parentId?` and '${parentId}' in parents`:''));
+  let r=await fetch('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id)',{headers:h});
+  if(r.ok){const j=await r.json();if(j.files&&j.files.length)return j.files[0].id;}
+  const body={name,mimeType:'application/vnd.google-apps.folder'};if(parentId)body.parents=[parentId];
+  r=await fetch('https://www.googleapis.com/drive/v3/files?fields=id',{method:'POST',headers:{...h,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error('folder');
+  return (await r.json()).id;
+}
+async function resolveFolder(origId){
+  const name=FOLDER_NAMES[origId];if(!name)return origId;
+  state.config.driveMap=state.config.driveMap||{};
+  if(state.config.driveMap[origId])return state.config.driveMap[origId];
+  if(!state.config.driveRoot)state.config.driveRoot=await driveEnsure('THE WHITE STONES APP',null);
+  const id=await driveEnsure(name,state.config.driveRoot);
+  state.config.driveMap[origId]=id;saveState();return id;
+}
+
 async function uploadFileToDrive(fileName,mimeType,content,folderId,progressId){
   if(!state.driveToken){toast('⚠️ Drive no conectado. Ve a Configuración → APIs.');return false;}
   const prog=document.getElementById(progressId);
   if(prog)prog.style.display='block';
   try{
+    folderId=await resolveFolder(folderId);
     const meta={name:fileName,parents:[folderId]};
     const form=new FormData();
     form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
@@ -663,6 +695,7 @@ async function uploadImageToDrive(fileName,base64Data,folderId){
   const binary=atob(base64Data.split(',')[1]);
   const bytes=new Uint8Array(binary.length);
   for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  try{folderId=await resolveFolder(folderId);}catch(e){return false;}
   const meta={name:fileName,parents:[folderId]};
   const form=new FormData();
   form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
@@ -766,8 +799,7 @@ async function ensureDocsFolder(){
   const q=encodeURIComponent(`name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
   let r=await fetch('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id)',{headers:h});
   if(r.ok){const j=await r.json();if(j.files&&j.files.length){state.config.docsFolderId=j.files[0].id;saveState();return j.files[0].id;}}
-  r=await fetch('https://www.googleapis.com/drive/v3/files?fields=id',{method:'POST',headers:{...h,'Content-Type':'application/json'},body:JSON.stringify({name,mimeType:'application/vnd.google-apps.folder'})});
-  if(!r.ok)return null;const j=await r.json();state.config.docsFolderId=j.id;saveState();return j.id;
+  try{if(!state.config.driveRoot)state.config.driveRoot=await driveEnsure('THE WHITE STONES APP',null);const id=await driveEnsure(name,state.config.driveRoot);state.config.docsFolderId=id;saveState();return id;}catch(e){return null;}
 }
 async function uploadAllDocsToDrive(){
   if(!state.driveToken){toast('⚠️ Drive no conectado. Ve a Config → APIs.');return;}
