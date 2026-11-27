@@ -369,6 +369,7 @@ tr.cash-in td{background:#0d3036!important;color:#80deea!important}
     </div>
     <div class="flex-row mt-2">
       <button class="btn btn-green" onclick="exportBankExcel()">📥 Descargar Excel</button>
+      <button class="btn btn-outline" onclick="reclassifyBank()">🔄 Reclasificar Vinted</button>
       <button class="btn btn-primary" onclick="uploadExcelToDrive('bank')">☁️ Guardar en Drive</button>
     </div>
     <div class="drive-upload-progress" id="bankDriveProgress">☁️ Subiendo a Drive...</div>
@@ -1493,6 +1494,24 @@ function updateDashboard(){
 
 // ===================== BANK =====================
 let bankRawData=[],bankHeaders=[];
+
+function vintedKeywords(){return [...new Set((state.config.vintedKw||'VINTED').split(',').map(k=>k.trim().toLowerCase()).concat(['vinted','mangopay']).filter(Boolean))];}
+function reclassifyBank(silent){
+  const vKw=vintedKeywords();const bKw=(state.config.bizumKw||'BIZUM').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+  let ch=0,np=0;
+  state.movements.forEach(m=>{
+    if(m.type==='loan')return;const cl=String(m.concept||'').toLowerCase();let t=m.amount>=0?'income':'expense';
+    if(vKw.some(k=>cl.includes(k)))t=m.amount>=0?'vinted-in':'vinted-out';else if(bKw.some(k=>cl.includes(k)))t='bizum';
+    if(t!==m.type){m.type=t;ch++;}
+    if(m.type==='vinted-in'||(m.type==='bizum'&&m.amount>0)){
+      const ex=state.pendingSales.some(p=>p.date===m.date&&p.amount===m.amount&&p.concept===m.concept);
+      const done=state.sales.some(x=>x.date===m.date&&parseFloat(x.sellPrice)===m.amount);
+      if(!ex&&!done){state.pendingSales.push({id:`PEND-${Date.now()}-${Math.random().toString(36).substr(2,5)}`,date:m.date,concept:m.concept,amount:m.amount,type:m.type,completed:false});np++;}
+    }
+  });
+  if(ch||np){saveState();try{renderBankResult();updateDashboard();renderAllSaleCards();}catch(e){}}
+  if(!silent)toast(ch||np?`🔄 ${ch} movimiento(s) reclasificados, ${np} ventas pendientes nuevas.`:'🔄 Nada que cambiar.',6000);
+}
 function bankNum(v){
   if(typeof v==='number')return v;
   let t=String(v==null?'':v).replace(/[€\s]|EUR/gi,'').replace(/ /g,'');if(!t)return 0;
@@ -1594,7 +1613,7 @@ function processBankData(){
   try{
     const fi=parseInt(document.getElementById('colFecha').value),ci=parseInt(document.getElementById('colConcepto').value),ii=parseInt(document.getElementById('colImporte').value),cg=parseInt(document.getElementById('colCargo').value);
     if(!bankRawData.length){toast('⚠️ No hay filas leídas. Sube el archivo otra vez.',6000);return;}
-    const bank=document.getElementById('bankName').value;const vKw=(state.config.vintedKw||'VINTED').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+    const bank=document.getElementById('bankName').value;const vKw=vintedKeywords();
     const bKw=(state.config.bizumKw||'BIZUM').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
     const newM=bankRawData.map(row=>{
       const date=bankDate(row[fi]);const concept=String(row[ci]==null?'':row[ci]).trim();
@@ -1921,7 +1940,7 @@ function saveConfig(){const get=id=>document.getElementById(id)?.value||'';state
 
 // ===================== INIT =====================
 updatePhotoSelect();
-if(state.movements.length)renderBankResult();
+if(state.movements.length){if(!state.reclassMango){state.reclassMango=true;reclassifyBank(true);}renderBankResult();}
 if(state.sales.length)renderSalesTable();
 if(state.cashSales.length)renderCashTable();
 updateDashboard();
