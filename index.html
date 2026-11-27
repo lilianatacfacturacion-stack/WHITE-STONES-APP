@@ -187,6 +187,8 @@ body.en-inicio .nav-btn span{font-size:clamp(2.2rem,6vw,3rem)}
 body.en-inicio .nav-btn:hover{background:#cac6bf;border-color:#a8844d}
 @media(max-width:700px){body.en-inicio .nav{grid-template-columns:repeat(2,1fr);gap:10px;padding:12px}body.en-inicio .nav-btn{min-height:130px;font-size:clamp(1.2rem,6vw,1.6rem)}}
 @media(max-width:600px){.form-row-2,.form-row-3{grid-template-columns:1fr}}
+p[style*="font-size:11px"],p[style*="font-size:12px"],div[style*="font-size:11px"],div[style*="font-size:12px"]{font-size:14px!important}
+.upload-zone p{font-size:14px!important}
 </style>
 </head>
 <body>
@@ -623,7 +625,7 @@ function doLogin(){
   const p=document.getElementById('loginPass').value.trim();
   if(u==='WhitestoneFer'&&p==='Lilitiafavorita'){
     document.getElementById('loginScreen').style.display='none';
-    document.getElementById('appShell').style.display='flex';
+    document.getElementById('appShell').style.display='flex';document.body.classList.add('en-inicio');
     sessionStorage.setItem('tws_auth','1');
     document.getElementById('loginError').style.display='none';
     initGoogleDrive();
@@ -634,7 +636,7 @@ function doLogin(){
 }
 if(sessionStorage.getItem('tws_auth')==='1'){
   document.getElementById('loginScreen').style.display='none';
-  document.getElementById('appShell').style.display='flex';
+  document.getElementById('appShell').style.display='flex';document.body.classList.add('en-inicio');
   setTimeout(initGoogleDrive,1000);
 }
 
@@ -1071,6 +1073,8 @@ async function analyzePhotoWithAI(base64Image){
 
 // ===================== TABS =====================
 function showTab(tab){
+  document.body.classList.toggle('en-inicio',tab==='dashboard');
+  window.scrollTo(0,0);
   document.querySelectorAll('[id^="page-"]').forEach(el=>el.classList.add('hidden'));
   document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+tab).classList.remove('hidden');
