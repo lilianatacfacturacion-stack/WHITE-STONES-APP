@@ -1606,8 +1606,9 @@ function processBankData(){
     }).filter(m=>(m.amount!==0||m.concept)&&m.date);
     if(!newM.length){toast('⚠️ No he podido sacar movimientos con esas columnas. Revisa que FECHA e IMPORTE sean las correctas.',8000);return;}
     const key=m=>(m.bank||'Caja Rural')+'|'+m.date+'|'+m.concept+'|'+m.amount;
-    const have=new Set(state.movements.map(key));let dup=0;
-    const fresh=newM.filter(m=>{if(have.has(key(m))){dup++;return false;}have.add(key(m));return true;});
+    const have={};state.movements.forEach(m=>{const k=key(m);have[k]=(have[k]||0)+1;});
+    const seen={};let dup=0;
+    const fresh=newM.filter(m=>{const k=key(m);seen[k]=(seen[k]||0)+1;if(seen[k]<=(have[k]||0)){dup++;return false;}return true;});
     state.movements=[...state.movements,...fresh];
     let newPending=0;
     fresh.forEach(m=>{
