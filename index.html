@@ -336,6 +336,8 @@ tr.cash-in td{background:#0d3036!important;color:#80deea!important}
   <div class="section-banner banner-bank"><span style="font-size:20px">🏦</span><div><strong>Extracto Bancario</strong> — Las ventas Vinted y Bizum detectadas aparecerán automáticamente como pendientes en Ventas Vinted.</div></div>
   <div class="card">
     <div class="card-title">📥 Importar extracto</div>
+    <label class="field-label">¿De qué banco es este extracto? *</label>
+    <select id="bankName" style="margin-bottom:10px"><option value="Caja Rural">Caja Rural (cuenta del negocio)</option><option value="Mediolanum">Mediolanum (préstamo del local)</option></select>
     <div class="upload-zone" onclick="document.getElementById('bankFile').click()">
       <input type="file" id="bankFile" accept=".csv,.xlsx,.xls" onchange="loadBankFile(this)">
       <div class="uz-icon">📄</div>
@@ -348,8 +350,10 @@ tr.cash-in td{background:#0d3036!important;color:#80deea!important}
     <div class="form-row form-row-3">
       <div><label class="field-label">FECHA</label><select id="colFecha"></select></div>
       <div><label class="field-label">CONCEPTO</label><select id="colConcepto"></select></div>
-      <div><label class="field-label">IMPORTE</label><select id="colImporte"></select></div>
+      <div><label class="field-label">IMPORTE (o ABONOS)</label><select id="colImporte"></select></div>
     </div>
+    <div style="margin-top:8px"><label class="field-label">CARGOS (solo si tu banco separa cargos y abonos)</label><select id="colCargo"></select></div>
+    <div id="bankSample"></div>
     <div class="flex-row mt-2">
       <button class="btn btn-primary" onclick="processBankData()">✅ Procesar</button>
       <button class="btn btn-outline" onclick="document.getElementById('bankPreviewCard').style.display='none'">✕</button>
@@ -358,6 +362,7 @@ tr.cash-in td{background:#0d3036!important;color:#80deea!important}
   <div id="bankResultCard" style="display:none">
     <div class="card">
       <div class="card-title">📊 Movimientos</div>
+      <select id="bankView" onchange="renderBankResult()" style="margin-bottom:8px"><option value="">Todos los bancos (el préstamo no cuenta en ingresos/gastos)</option><option value="Caja Rural">Solo Caja Rural</option><option value="Mediolanum">Solo Mediolanum (préstamo)</option></select>
       <div class="month-tabs" id="bankMonthTabs"></div>
       <div id="bankMonthSummary" class="summary-grid"></div>
       <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Importe</th><th>Tipo</th></tr></thead><tbody id="bankTable"></tbody></table></div>
@@ -1462,14 +1467,14 @@ document.getElementById('logoInput').addEventListener('change',function(){
 if(state.logoData){document.getElementById('logoImg').src=state.logoData;document.getElementById('logoImg').style.display='block';document.getElementById('logoPlaceholder').style.display='none';}
 
 // ===================== HELPERS =====================
-function typeLabel(t){const l={'income':'Ingreso','expense':'Gasto','vinted-in':'Vinted','vinted-out':'Vinted compra','bizum':'Bizum','cash-in':'Efectivo'};return`<span class="status-pill pill-${t==='vinted-in'||t==='cash-in'||t==='income'?'green':'red'}">${l[t]||t}</span>`;}
+function typeLabel(t){const l={'income':'Ingreso','expense':'Gasto','vinted-in':'Vinted','vinted-out':'Vinted compra','bizum':'Bizum','cash-in':'Efectivo','loan':'Préstamo'};return`<span class="status-pill pill-${t==='vinted-in'||t==='cash-in'||t==='income'?'green':'red'}">${l[t]||t}</span>`;}
 function rowClass(t){return{income:'income',expense:'expense','vinted-in':'vinted-in','vinted-out':'vinted-out',bizum:'bizum','cash-in':'cash-in'}[t]||'neutral';}
-function groupByMonth(items){const m={};items.forEach(item=>{const d=item.date||item.saleDate||'';let key='Sin-fecha';if(d){const p=d.split(/[\/\-\.]/);if(p.length>=2){if(d.includes('-')&&p[0].length===4)key=p[0]+'-'+p[1];else key=(p[2]||p[1])+'-'+(p[1]?.length===2&&parseInt(p[1])<=12?p[1]:p[0]);}}if(!m[key])m[key]=[];m[key].push(item);});return m;}
+function groupByMonth(items){const m={};items.forEach(item=>{const d=String(item.date||item.saleDate||'');let key='Sin-fecha';if(d){const p=d.split(/[\/\-\.]/);if(p.length>=2){if(d.includes('-')&&p[0].length===4)key=p[0]+'-'+p[1];else key=(p[2]||p[1])+'-'+(p[1]?.length===2&&parseInt(p[1])<=12?p[1]:p[0]);}}if(!m[key])m[key]=[];m[key].push(item);});return m;}
 function monthLabel(key){if(key==='Sin-fecha')return'Sin fecha';const[y,m]=key.split('-');return(MONTHS[parseInt(m)-1]||m)+' '+y;}
 
 // ===================== DASHBOARD =====================
 function updateDashboard(){
-  const all=[...state.movements,...state.sales.map(s=>({...s,amount:parseFloat(s.sellPrice)})),...state.cashSales.map(s=>({...s,amount:parseFloat(s.sellPrice)}))];
+  const all=[...state.movements.filter(m=>m.type!=='loan'),...state.sales.map(s=>({...s,amount:parseFloat(s.sellPrice)})),...state.cashSales.map(s=>({...s,amount:parseFloat(s.sellPrice)}))];
   const inc=all.filter(m=>parseFloat(m.amount)>0).reduce((a,m)=>a+parseFloat(m.amount),0);
   const exp=all.filter(m=>parseFloat(m.amount)<0).reduce((a,m)=>a+parseFloat(m.amount),0);
   const vinted=state.sales.reduce((a,s)=>a+parseFloat(s.sellPrice||0),0)+state.cashSales.reduce((a,s)=>a+parseFloat(s.sellPrice||0),0);
@@ -1487,44 +1492,141 @@ function updateDashboard(){
 
 // ===================== BANK =====================
 let bankRawData=[],bankHeaders=[];
-function loadBankFile(input){const file=input.files[0];if(!file)return;const ext=file.name.split('.').pop().toLowerCase();if(ext==='csv'){const r=new FileReader();r.onload=e=>parseCSV(e.target.result);r.readAsText(file,state.config.enc||'UTF-8');}else{const r=new FileReader();r.onload=e=>{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const data=XLSX.utils.sheet_to_json(ws,{header:1});bankHeaders=data[0].map(String);bankRawData=data.slice(1);showBankPreview();};r.readAsArrayBuffer(file);}}
-function parseCSV(text){const sep=state.config.sep||';';const lines=text.split('\n').filter(l=>l.trim());bankHeaders=lines[0].split(sep).map(h=>h.replace(/"/g,'').trim());bankRawData=lines.slice(1).map(l=>l.split(sep).map(c=>c.replace(/"/g,'').trim()));showBankPreview();}
-function showBankPreview(){const card=document.getElementById('bankPreviewCard');card.style.display='block';['colFecha','colConcepto','colImporte'].forEach(id=>{document.getElementById(id).innerHTML=bankHeaders.map((h,i)=>`<option value="${i}">${h}</option>`).join('');});const lower=bankHeaders.map(h=>h.toLowerCase());const fi=lower.findIndex(h=>h.includes('fecha')||h.includes('date'));const ci=lower.findIndex(h=>h.includes('concepto')||h.includes('descripci'));const ii=lower.findIndex(h=>h.includes('importe')||h.includes('amount'));if(fi>=0)document.getElementById('colFecha').value=fi;if(ci>=0)document.getElementById('colConcepto').value=ci;if(ii>=0)document.getElementById('colImporte').value=ii;toast('📋 Verifica columnas y pulsa Procesar.');}
-function processBankData(){
-  const fi=parseInt(document.getElementById('colFecha').value);
-  const ci=parseInt(document.getElementById('colConcepto').value);
-  const ii=parseInt(document.getElementById('colImporte').value);
-  const vKw=(state.config.vintedKw||'VINTED').split(',').map(k=>k.trim().toLowerCase());
-  const bKw=(state.config.bizumKw||'BIZUM').split(',').map(k=>k.trim().toLowerCase());
-  const newM=bankRawData.filter(row=>row.length>Math.max(fi,ci,ii)).map(row=>{
-    const date=row[fi]||'';const concept=row[ci]||'';
-    const amount=parseFloat(String(row[ii]).replace(/\./g,'').replace(',','.'))||0;
-    const cl=concept.toLowerCase();
-    let type=amount>=0?'income':'expense';
-    if(vKw.some(k=>cl.includes(k)))type=amount>=0?'vinted-in':'vinted-out';
-    else if(bKw.some(k=>cl.includes(k)))type='bizum';
-    return{date,concept,amount,type};
-  }).filter(m=>m.amount!==0||m.concept);
-  state.movements=[...state.movements,...newM];
-  let newPending=0;
-  newM.forEach(m=>{
-    if(m.type==='vinted-in'||(m.type==='bizum'&&m.amount>0)){
-      const exists=state.pendingSales.some(p=>p.date===m.date&&p.amount===m.amount&&p.concept===m.concept);
-      const done=state.sales.some(s=>s.date===m.date&&parseFloat(s.sellPrice)===m.amount);
-      if(!exists&&!done){
-        state.pendingSales.push({id:`PEND-${Date.now()}-${Math.random().toString(36).substr(2,5)}`,date:m.date,concept:m.concept,amount:m.amount,type:m.type,completed:false});
-        newPending++;
-      }
-    }
-  });
-  saveState();
-  document.getElementById('bankPreviewCard').style.display='none';
-  renderBankResult();
-  toast(`✅ ${newM.length} movimientos. ${newPending} ventas pendientes de ficha.`);
-  updateDashboard();
+function bankNum(v){
+  if(typeof v==='number')return v;
+  let t=String(v==null?'':v).replace(/[€\s]|EUR/gi,'').replace(/ /g,'');if(!t)return 0;
+  const neg=/^\(.*\)$/.test(t)||t.endsWith('-');t=t.replace(/[()]/g,'').replace(/-$/,'');
+  if(t.includes(',')&&t.includes('.')){t=t.lastIndexOf(',')>t.lastIndexOf('.')?t.replace(/\./g,'').replace(',','.'):t.replace(/,/g,'');}
+  else if(t.includes(','))t=t.replace(',','.');
+  else if(/^-?\d{1,3}(\.\d{3})+$/.test(t))t=t.replace(/\./g,'');
+  const n=parseFloat(t);return isNaN(n)?0:(neg?-Math.abs(n):n);
 }
-function renderBankResult(){document.getElementById('bankResultCard').style.display='block';const months=groupByMonth(state.movements);const keys=Object.keys(months).sort();document.getElementById('bankMonthTabs').innerHTML=keys.map((k,i)=>`<span class="month-tab ${i===0?'active':''}" onclick="showBankMonth('${k}',this)">${monthLabel(k)}</span>`).join('');if(keys.length)showBankMonth(keys[0]);}
-function showBankMonth(key,el){document.querySelectorAll('#bankMonthTabs .month-tab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');const rows=(groupByMonth(state.movements)[key])||[];const tInc=rows.filter(r=>r.amount>0).reduce((a,r)=>a+r.amount,0);const tExp=rows.filter(r=>r.amount<0).reduce((a,r)=>a+r.amount,0);const vIn=rows.filter(r=>r.type==='vinted-in').reduce((a,r)=>a+r.amount,0);const vOut=rows.filter(r=>r.type==='vinted-out').reduce((a,r)=>a+r.amount,0);const biz=rows.filter(r=>r.type==='bizum').reduce((a,r)=>a+r.amount,0);document.getElementById('bankMonthSummary').innerHTML=`<div class="summary-box sb-green"><div class="sb-val">${fmt(tInc)}</div><div class="sb-lbl">INGRESOS</div></div><div class="summary-box sb-red"><div class="sb-val">${fmt(Math.abs(tExp))}</div><div class="sb-lbl">GASTOS</div></div><div class="summary-box ${(tInc+tExp)>=0?'sb-green':'sb-red'}"><div class="sb-val">${fmt(tInc+tExp)}</div><div class="sb-lbl">BALANCE</div></div><div class="summary-box sb-gold"><div class="sb-val">${fmt(vIn)}</div><div class="sb-lbl">VENTAS VINTED</div></div><div class="summary-box" style="background:#FFF3E0;color:#E65100"><div class="sb-val">${fmt(Math.abs(vOut))}</div><div class="sb-lbl">COMPRAS VINTED</div></div><div class="summary-box sb-purple"><div class="sb-val">${fmt(biz)}</div><div class="sb-lbl">BIZUM</div></div>`;document.getElementById('bankTable').innerHTML=rows.map(r=>`<tr class="${rowClass(r.type)}"><td>${r.date}</td><td>${r.concept}</td><td><strong class="${r.amount>=0?'positive':'negative'}">${fmt(r.amount)}</strong></td><td>${typeLabel(r.type)}</td></tr>`).join('')+`<tr class="total-row"><td colspan="2"><strong>TOTAL</strong></td><td colspan="2"><strong>${fmt(tInc+tExp)}</strong></td></tr>`;}
+function bankDate(v){
+  if(v instanceof Date&&!isNaN(v))return String(v.getUTCDate()).padStart(2,'0')+'/'+String(v.getUTCMonth()+1).padStart(2,'0')+'/'+v.getUTCFullYear();
+  if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*86400000));return bankDate(d);}
+  const t=String(v==null?'':v).trim();
+  let m=/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/.exec(t);
+  if(m)return m[1].padStart(2,'0')+'/'+m[2].padStart(2,'0')+'/'+(m[3].length===2?'20'+m[3]:m[3]);
+  m=/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/.exec(t);
+  if(m)return m[3].padStart(2,'0')+'/'+m[2].padStart(2,'0')+'/'+m[1];
+  return t;
+}
+function bankFindHeader(data){
+  for(let i=0;i<Math.min(data.length,40);i++){
+    const r=(data[i]||[]).map(x=>String(x==null?'':x).toLowerCase());
+    const f=r.some(h=>/fecha|date|f\.\s?(oper|valor)|^f\./.test(h)),c=r.some(h=>/concepto|descripci|movimiento|detalle|observ/.test(h)),im=r.some(h=>/importe|amount|cantidad|abono|cargo|haber|debe|euros/.test(h));
+    if(f&&(c||im)&&r.filter(Boolean).length>=2)return i;
+  }
+  for(let i=0;i<Math.min(data.length-1,40);i++){
+    const r=(data[i]||[]),n=data[i+1]||[];
+    const txt=r.filter(x=>typeof x==='string'&&x.trim()&&isNaN(bankNum(x))).length;
+    const hasNum=n.some(x=>typeof x==='number'||x instanceof Date||/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/.test(String(x)));
+    if(txt>=3&&hasNum)return i;
+  }
+  return 0;
+}
+function bankLoadRows(data){
+  const hi=bankFindHeader(data);
+  bankHeaders=(data[hi]||[]).map((h,i)=>String(h==null||h===''?'Columna '+(i+1):h).trim());
+  const w=bankHeaders.length;
+  bankRawData=data.slice(hi+1).filter(r=>r&&r.some(c=>c!==null&&c!==''&&c!==undefined)).map(r=>{const x=[];for(let i=0;i<Math.max(w,r.length);i++)x.push(r[i]===undefined?'':r[i]);return x;});
+  showBankPreview(hi);
+}
+function loadBankFile(input){
+  const file=input.files[0];if(!file)return;const ext=file.name.split('.').pop().toLowerCase();
+  const done=()=>{input.value='';};
+  try{
+    if(ext==='csv'||ext==='txt'){
+      const r=new FileReader();
+      r.onload=e=>{try{
+        let text=e.target.result;if(/�/.test(text)){/* probable codificación Windows */}
+        const first=text.split(/\r?\n/).slice(0,40).join('\n');
+        const cnt=c=>(first.match(new RegExp(c==='\t'?'\t':'\\'+c,'g'))||[]).length;
+        const sep=[';',',','\t'].sort((a,b)=>cnt(b)-cnt(a))[0];
+        const data=text.split(/\r?\n/).filter(l=>l.trim()).map(l=>l.split(sep).map(c=>c.replace(/^"|"$/g,'').trim()));
+        bankLoadRows(data);
+      }catch(err){toast('❌ No pude leer el CSV: '+err.message,7000);}};
+      r.readAsText(file,'ISO-8859-1');
+    }else{
+      const r=new FileReader();
+      r.onload=e=>{try{
+        const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const data=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+        bankLoadRows(data);
+      }catch(err){toast('❌ No pude leer el Excel: '+err.message,7000);}};
+      r.readAsArrayBuffer(file);
+    }
+  }catch(err){toast('❌ Error al abrir el archivo: '+err.message,7000);}
+  done();
+}
+function showBankPreview(hi){
+  const card=document.getElementById('bankPreviewCard');card.style.display='block';
+  const opts=bankHeaders.map((h,i)=>`<option value="${i}">${esc(h)}</option>`).join('');
+  ['colFecha','colConcepto','colImporte'].forEach(id=>{document.getElementById(id).innerHTML=opts;});
+  document.getElementById('colCargo').innerHTML='<option value="-1">— no hay —</option>'+opts;
+  const lower=bankHeaders.map(h=>h.toLowerCase());
+  const fi=lower.findIndex(h=>/fecha|date|^f\./.test(h));
+  let ci=lower.findIndex(h=>/concepto|descripci|movimiento|detalle|observ/.test(h));
+  let ii=lower.findIndex(h=>/^importe|amount|cantidad|euros/.test(h));
+  const ab=lower.findIndex(h=>/abono|haber/.test(h)),cg=lower.findIndex(h=>/cargo|debe/.test(h));
+  if(ii<0&&ab>=0)ii=ab;
+  if(ii<0)ii=lower.findIndex(h=>/importe/.test(h));
+  const samp=bankRawData.slice(0,5);
+  const isDateV=v=>v instanceof Date||(typeof v==='number'&&v>20000&&v<80000)||/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/.test(String(v));
+  let fi2=fi,ci2=ci,ii2=ii;
+  if(fi2<0)fi2=bankHeaders.findIndex((_,i)=>samp.length&&samp.every(r=>isDateV(r[i])));
+  if(ii2<0)ii2=bankHeaders.findIndex((_,i)=>i!==fi2&&samp.length&&samp.every(r=>r[i]!==''&&!isNaN(bankNum(r[i]))&&/\d/.test(String(r[i]))));
+  if(ci2<0)ci2=bankHeaders.findIndex((_,i)=>i!==fi2&&i!==ii2&&samp.some(r=>typeof r[i]==='string'&&r[i].length>6));
+  ci=ci2;
+  if(fi2>=0)document.getElementById('colFecha').value=fi2;
+  if(ii2>=0)ii=ii2;
+  if(ci>=0)document.getElementById('colConcepto').value=ci;
+  if(ii>=0)document.getElementById('colImporte').value=ii;
+  if(cg>=0&&ab>=0&&ii===ab)document.getElementById('colCargo').value=cg;
+  const sample=bankRawData.slice(0,4).map(r=>`<tr>${bankHeaders.map((_,i)=>`<td>${esc(r[i])}</td>`).join('')}</tr>`).join('');
+  document.getElementById('bankSample').innerHTML=`<p style="font-size:14px;margin:6px 0">He leído <strong>${bankRawData.length}</strong> filas${hi?` (la cabecera estaba en la fila ${hi+1})`:''}. Así se ven las primeras:</p><div class="table-wrap"><table><thead><tr>${bankHeaders.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${sample}</tbody></table></div>`;
+  toast('📋 Comprueba las columnas y pulsa Procesar.',5000);
+  card.scrollIntoView({behavior:'smooth'});
+}
+function processBankData(){
+  try{
+    const fi=parseInt(document.getElementById('colFecha').value),ci=parseInt(document.getElementById('colConcepto').value),ii=parseInt(document.getElementById('colImporte').value),cg=parseInt(document.getElementById('colCargo').value);
+    if(!bankRawData.length){toast('⚠️ No hay filas leídas. Sube el archivo otra vez.',6000);return;}
+    const bank=document.getElementById('bankName').value;const vKw=(state.config.vintedKw||'VINTED').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+    const bKw=(state.config.bizumKw||'BIZUM').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+    const newM=bankRawData.map(row=>{
+      const date=bankDate(row[fi]);const concept=String(row[ci]==null?'':row[ci]).trim();
+      let amount=bankNum(row[ii]);if(cg>=0)amount=bankNum(row[ii])-Math.abs(bankNum(row[cg]));
+      const cl=concept.toLowerCase();let type=amount>=0?'income':'expense';
+      if(bank==='Mediolanum')type='loan';
+      else if(vKw.some(k=>cl.includes(k)))type=amount>=0?'vinted-in':'vinted-out';
+      else if(bKw.some(k=>cl.includes(k)))type='bizum';
+      return{date,concept,amount,type,bank};
+    }).filter(m=>(m.amount!==0||m.concept)&&m.date);
+    if(!newM.length){toast('⚠️ No he podido sacar movimientos con esas columnas. Revisa que FECHA e IMPORTE sean las correctas.',8000);return;}
+    const key=m=>(m.bank||'Caja Rural')+'|'+m.date+'|'+m.concept+'|'+m.amount;
+    const have=new Set(state.movements.map(key));let dup=0;
+    const fresh=newM.filter(m=>{if(have.has(key(m))){dup++;return false;}have.add(key(m));return true;});
+    state.movements=[...state.movements,...fresh];
+    let newPending=0;
+    fresh.forEach(m=>{
+      if(m.type==='vinted-in'||(m.type==='bizum'&&m.amount>0)){
+        const exists=state.pendingSales.some(p=>p.date===m.date&&p.amount===m.amount&&p.concept===m.concept);
+        const done=state.sales.some(x=>x.date===m.date&&parseFloat(x.sellPrice)===m.amount);
+        if(!exists&&!done){state.pendingSales.push({id:`PEND-${Date.now()}-${Math.random().toString(36).substr(2,5)}`,date:m.date,concept:m.concept,amount:m.amount,type:m.type,completed:false});newPending++;}
+      }
+    });
+    saveState();
+    document.getElementById('bankPreviewCard').style.display='none';
+    renderBankResult();updateDashboard();
+    document.getElementById('bankResultCard').scrollIntoView({behavior:'smooth'});
+    toast(`✅ ${fresh.length} movimientos nuevos${dup?` (${dup} repetidos omitidos)`:''}. ${newPending} ventas pendientes de ficha.`,7000);
+  }catch(err){toast('❌ Error al procesar: '+err.message,9000);}
+}
+function bankView(){const v=(document.getElementById('bankView')||{}).value||'';return state.movements.filter(m=>!v||(m.bank||'Caja Rural')===v);}
+function renderBankResult(){document.getElementById('bankResultCard').style.display='block';const months=groupByMonth(bankView());const keys=Object.keys(months).sort();document.getElementById('bankMonthTabs').innerHTML=keys.map((k,i)=>`<span class="month-tab ${i===0?'active':''}" onclick="showBankMonth('${k}',this)">${monthLabel(k)}</span>`).join('');if(keys.length)showBankMonth(keys[0]);}
+function showBankMonth(key,el){document.querySelectorAll('#bankMonthTabs .month-tab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');const rows=(groupByMonth(bankView())[key])||[];const onlyLoan=(document.getElementById('bankView')||{}).value==='Mediolanum';const tInc=rows.filter(r=>(onlyLoan||r.type!=='loan')&&r.amount>0).reduce((a,r)=>a+r.amount,0);const tExp=rows.filter(r=>(onlyLoan||r.type!=='loan')&&r.amount<0).reduce((a,r)=>a+r.amount,0);const vIn=rows.filter(r=>r.type==='vinted-in').reduce((a,r)=>a+r.amount,0);const vOut=rows.filter(r=>r.type==='vinted-out').reduce((a,r)=>a+r.amount,0);const biz=rows.filter(r=>r.type==='bizum').reduce((a,r)=>a+r.amount,0);document.getElementById('bankMonthSummary').innerHTML=`<div class="summary-box sb-green"><div class="sb-val">${fmt(tInc)}</div><div class="sb-lbl">INGRESOS</div></div><div class="summary-box sb-red"><div class="sb-val">${fmt(Math.abs(tExp))}</div><div class="sb-lbl">GASTOS</div></div><div class="summary-box ${(tInc+tExp)>=0?'sb-green':'sb-red'}"><div class="sb-val">${fmt(tInc+tExp)}</div><div class="sb-lbl">BALANCE</div></div><div class="summary-box sb-gold"><div class="sb-val">${fmt(vIn)}</div><div class="sb-lbl">VENTAS VINTED</div></div><div class="summary-box" style="background:#FFF3E0;color:#E65100"><div class="sb-val">${fmt(Math.abs(vOut))}</div><div class="sb-lbl">COMPRAS VINTED</div></div><div class="summary-box sb-purple"><div class="sb-val">${fmt(biz)}</div><div class="sb-lbl">BIZUM</div></div>`;document.getElementById('bankTable').innerHTML=rows.map(r=>`<tr class="${rowClass(r.type)}"><td>${r.date}</td><td>${r.concept}</td><td><strong class="${r.amount>=0?'positive':'negative'}">${fmt(r.amount)}</strong></td><td>${typeLabel(r.type)}${r.bank?' · '+esc(r.bank):''}</td></tr>`).join('')+`<tr class="total-row"><td colspan="2"><strong>TOTAL</strong></td><td colspan="2"><strong>${fmt(tInc+tExp)}</strong></td></tr>`;}
 
 // ===================== SALE CARDS =====================
 function renderAllSaleCards(){
