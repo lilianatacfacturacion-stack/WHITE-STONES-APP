@@ -472,9 +472,11 @@ label.field-label,.config-section label,.field-label{font-size:14px!important}
     <div id="docList"></div>
     <div class="flex-row mt-2">
       <button class="btn btn-primary" onclick="uploadAllDocsToDrive()">☁️ Subir pendientes a Drive</button>
+      <button class="btn btn-outline" onclick="redetectDocs()">🔎 Detectar tipos por el nombre</button>
+      <button class="btn btn-outline" onclick="reorganizeDocsDrive()">📂 Ordenar carpetas en Drive</button>
     </div>
     <div class="drive-upload-progress" id="docDriveProgress">☁️ Subiendo documentos a Drive...</div>
-    <p style="font-size:11px;color:#888;margin-top:10px">Los archivos se guardan en este móvil (no se pierden al cerrar la app). En Drive se crea la carpeta <strong>06_Documentacion_Fiscal</strong> sola, en "Mi unidad".</p>
+    <p style="font-size:11px;color:#888;margin-top:10px">Los archivos se guardan en este móvil (no se pierden al cerrar la app). En Drive se ordenan solos en <strong>06_Documentacion_Fiscal / año / tipo</strong>, por ejemplo 2026 / IVA (303). Si ya tenías documentos subidos, pulsa "Ordenar carpetas en Drive".</p>
   </div>
 </div>
 
@@ -804,17 +806,32 @@ function initDocsUI(){
   if(!state.fiscalDocs)state.fiscalDocs=[];
   const y=new Date().getFullYear();
   const opts=[];for(let i=y+1;i>=2025;i--)opts.push(`<option>${i}</option>`);
-  const dc=document.getElementById('docCat');if(!dc.options.length)dc.innerHTML=docCatOptions('alta');
+  const dc=document.getElementById('docCat');if(!dc.options.length)dc.innerHTML='<option value="auto">Detectar por el nombre del archivo</option>'+docCatOptions('');
   const df=document.getElementById('docFilterCat');if(!df.options.length)df.innerHTML='<option value="">Todos</option>'+docCatOptions('');
   const ys=document.getElementById('docYear');if(!ys.options.length){ys.innerHTML=opts.join('');ys.value=String(y);}
   const fy=document.getElementById('docFilterYear');if(!fy.options.length){fy.innerHTML='<option value="">Todos</option>'+opts.join('');}
   renderDocs();
 }
+function guessDoc(name){
+  const n=String(name||'').toLowerCase();let cat=null;
+  if(/\b303\b/.test(n))cat='303';
+  else if(/\b13[01]\b/.test(n))cat='130';
+  else if(/\b390\b/.test(n))cat='390';
+  else if(/renta|irpf anual|\b100\b/.test(n))cat='renta';
+  else if(/reta|tarifa plana|seguridad social|cuota/.test(n))cat='reta';
+  else if(/036|037|censal|actividades econ|\biae\b|rebu|\bp36\b/.test(n))cat='alta';
+  else if(/cuenta|bancari|domicili/.test(n))cat='banco';
+  const q=(/\b([1-4])\s?t\b/i.exec(n)||[])[1];
+  const y=(/\b(20\d\d)\b/.exec(n)||[])[1];
+  return{cat,q:q?q+'T':'',year:y||''};
+}
 async function addFiscalDocs(input){
   if(!state.fiscalDocs)state.fiscalDocs=[];
-  const cat=document.getElementById('docCat').value,year=document.getElementById('docYear').value,q=document.getElementById('docQ').value,note=document.getElementById('docNote').value.trim();
+  const catSel=document.getElementById('docCat').value,yearSel=document.getElementById('docYear').value,qSel=document.getElementById('docQ').value,note=document.getElementById('docNote').value.trim();
   const files=[...input.files];let n=0;
   for(const f of files){
+    const g=guessDoc(f.name);
+    const cat=catSel==='auto'?(g.cat||'otros'):catSel,year=g.year||yearSel,q=qSel||g.q;
     const id='d'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
     try{await docPut(id,f);}catch(e){toast('❌ No se pudo guardar '+f.name);continue;}
     state.fiscalDocs.push({id,cat,year,q,note,name:f.name,type:f.type||'application/octet-stream',size:f.size,date:new Date().toLocaleDateString('es-ES'),drive:false});
@@ -847,6 +864,47 @@ async function ensureDocsFolder(){
   if(r.ok){const j=await r.json();if(j.files&&j.files.length){state.config.docsFolderId=j.files[0].id;saveState();return j.files[0].id;}}
   try{if(!state.config.driveRoot)state.config.driveRoot=await driveEnsure('THE WHITE STONES APP',null);const id=await driveEnsure(name,state.config.driveRoot);state.config.docsFolderId=id;saveState();return id;}catch(e){return null;}
 }
+const DOC_FOLDER={alta:'Altas y censo',303:'IVA (303)',130:'IRPF (130-131)',390:'Resumen IVA (390)',renta:'Renta',reta:'Seguridad Social (RETA)',banco:'Banco',otros:'Otros'};
+function docNewName(d){return (d.q?d.q+' - ':'')+d.name;}
+async function docTargetFolder(d,root){
+  const y=await driveEnsure(String(d.year||'Sin año'),root);
+  return driveEnsure(DOC_FOLDER[d.cat]||'Otros',y);
+}
+function redetectDocs(){
+  let n=0;(state.fiscalDocs||[]).forEach(d=>{const g=guessDoc(d.name);if(g.cat&&g.cat!==d.cat){d.cat=g.cat;n++;}if(!d.q&&g.q){d.q=g.q;n++;}});
+  saveState();renderDocs();toast(n?`🔎 ${n} cambio(s). Revisa los tipos y pulsa Ordenar carpetas en Drive.`:'🔎 No hay nada que cambiar.',5000);
+}
+async function reorganizeDocsDrive(){
+  if(!state.driveToken){toast('⚠️ Drive no conectado.');return;}
+  const prog=document.getElementById('docDriveProgress');prog.style.display='block';
+  let moved=0,miss=0;
+  try{
+    const root=await ensureDocsFolder();if(!root)throw new Error('root');
+    const h={Authorization:'Bearer '+state.driveToken};
+    const q=encodeURIComponent("trashed=false and mimeType!='application/vnd.google-apps.folder'");
+    const r=await fetch('https://www.googleapis.com/drive/v3/files?q='+q+'&pageSize=1000&fields=files(id,name,parents)',{headers:h});
+    if(!r.ok)throw new Error('list');
+    const files=(await r.json()).files||[];
+    const oldCats=['Alta / REBU','IVA (303)','IRPF (130/131)','Resumen IVA (390)','Renta','Otros'];
+    const sanit=t=>t.replace(/[^A-Za-z0-9ÁÉÍÓÚáéíóúñÑ]+/g,'_');
+    for(const d of (state.fiscalDocs||[]).filter(x=>x.drive)){
+      let f=d.driveId?files.find(x=>x.id===d.driveId):null;
+      if(!f){
+        const cands=[];
+        Object.values(DOC_CATS).concat(oldCats).forEach(c=>cands.push([d.year,d.q,sanit(c)].filter(Boolean).join('_')+'__'+d.name));
+        cands.push(docNewName(d));
+        f=files.find(x=>cands.includes(x.name));
+      }
+      if(!f){miss++;continue;}
+      const target=await docTargetFolder(d,root);
+      const url='https://www.googleapis.com/drive/v3/files/'+f.id+'?addParents='+target+'&removeParents='+(f.parents||[]).join(',')+'&fields=id';
+      const u=await fetch(url,{method:'PATCH',headers:{...h,'Content-Type':'application/json'},body:JSON.stringify({name:docNewName(d)})});
+      if(u.ok){d.driveId=f.id;moved++;}else miss++;
+    }
+  }catch(e){toast('❌ No pude ordenar en Drive. Reconecta e inténtalo otra vez.');}
+  prog.style.display='none';saveState();renderDocs();
+  toast(`📂 ${moved} documento(s) ordenados en Drive`+(miss?` · ${miss} no encontrados`:'')+'.',5000);
+}
 async function uploadAllDocsToDrive(){
   if(!state.driveToken){toast('⚠️ Drive no conectado. Ve a Config → APIs.');return;}
   const pend=(state.fiscalDocs||[]).filter(d=>!d.drive);
@@ -858,12 +916,13 @@ async function uploadAllDocsToDrive(){
     if(!folder)throw new Error('folder');
     for(const d of pend){
       const b=await docGet(d.id);if(!b)continue;
-      const meta={name:docDriveName(d),parents:[folder]};
+      const target=await docTargetFolder(d,folder);
+      const meta={name:docNewName(d),parents:[target]};
       const form=new FormData();
       form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
       form.append('file',b);
-      const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{method:'POST',headers:{Authorization:'Bearer '+state.driveToken},body:form});
-      if(r.ok){d.drive=true;ok++;}
+      const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{Authorization:'Bearer '+state.driveToken},body:form});
+      if(r.ok){try{d.driveId=(await r.json()).id;}catch(e){}d.drive=true;ok++;}
     }
   }catch(e){toast('❌ Error con Drive. Reconecta en Config.');}
   prog.style.display='none';saveState();renderDocs();
